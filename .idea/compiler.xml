@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Annotation profile for mitedtsm" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/springframework/boot/spring-boot-configuration-processor/3.5.9/spring-boot-configuration-processor-3.5.9.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok-mapstruct-binding/0.2.0/lombok-mapstruct-binding-0.2.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+        </processorPath>
+        <module name="mitedtsm-module-member" />
+        <module name="mitedtsm-module-pay" />
+        <module name="mitedtsm-spring-boot-starter-mybatis" />
+        <module name="mitedtsm-module-erp" />
+        <module name="mitedtsm-module-iot-biz" />
+        <module name="mitedtsm-module-trade-api" />
+        <module name="mitedtsm-module-mp" />
+        <module name="mitedtsm-common" />
+        <module name="mitedtsm-module-bpm" />
+        <module name="mitedtsm-module-crm" />
+        <module name="mitedtsm-spring-boot-starter-web" />
+        <module name="mitedtsm-module-report" />
+        <module name="mitedtsm-spring-boot-starter-biz-tenant" />
+        <module name="mitedtsm-module-iot-gateway" />
+        <module name="mitedtsm-module-ai" />
+        <module name="mitedtsm-spring-boot-starter-monitor" />
+        <module name="mitedtsm-server" />
+        <module name="mitedtsm-spring-boot-starter-mq" />
+        <module name="mitedtsm-module-infra" />
+        <module name="mitedtsm-spring-boot-starter-websocket" />
+        <module name="mitedtsm-spring-boot-starter-redis" />
+        <module name="mitedtsm-module-trade" />
+        <module name="mitedtsm-spring-boot-starter-protection" />
+        <module name="mitedtsm-spring-boot-starter-biz-data-permission" />
+        <module name="mitedtsm-spring-boot-starter-job" />
+        <module name="mitedtsm-spring-boot-starter-security" />
+        <module name="mitedtsm-module-promotion" />
+        <module name="mitedtsm-module-product" />
+        <module name="mitedtsm-spring-boot-starter-test" />
+        <module name="mitedtsm-spring-boot-starter-excel" />
+        <module name="mitedtsm-spring-boot-starter-biz-ip" />
+        <module name="mitedtsm-module-statistics" />
+        <module name="mitedtsm-module-iot-core" />
+        <module name="mitedtsm-module-system" />
+      </profile>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="mitedtsm-init-service" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="mitedtsm-common" options="-parameters" />
+      <module name="mitedtsm-module-ai" options="-parameters" />
+      <module name="mitedtsm-module-bpm" options="-parameters" />
+      <module name="mitedtsm-module-crm" options="-parameters" />
+      <module name="mitedtsm-module-erp" options="-parameters" />
+      <module name="mitedtsm-module-infra" options="-parameters" />
+      <module name="mitedtsm-module-iot-biz" options="-parameters" />
+      <module name="mitedtsm-module-iot-core" options="-parameters" />
+      <module name="mitedtsm-module-iot-gateway" options="-parameters" />
+      <module name="mitedtsm-module-member" options="-parameters" />
+      <module name="mitedtsm-module-mp" options="-parameters" />
+      <module name="mitedtsm-module-pay" options="-parameters" />
+      <module name="mitedtsm-module-product" options="-parameters" />
+      <module name="mitedtsm-module-promotion" options="-parameters" />
+      <module name="mitedtsm-module-report" options="-parameters" />
+      <module name="mitedtsm-module-statistics" options="-parameters" />
+      <module name="mitedtsm-module-system" options="-parameters" />
+      <module name="mitedtsm-module-trade" options="-parameters" />
+      <module name="mitedtsm-module-trade-api" options="-parameters" />
+      <module name="mitedtsm-server" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-biz-data-permission" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-biz-ip" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-biz-tenant" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-excel" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-job" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-monitor" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-mq" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-mybatis" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-protection" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-redis" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-security" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-test" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-web" options="-parameters" />
+      <module name="mitedtsm-spring-boot-starter-websocket" options="-parameters" />
+    </option>
+  </component>
+</project>
