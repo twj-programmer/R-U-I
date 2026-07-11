@@ -56,67 +56,168 @@ Mall 商城端 ─── /app-api ─────┘                     ├─�
 
 `docker-images/` 中的离线镜像归档、`target/`、`node_modules/` 和前端构建产物均可重新生成，因此不纳入源码仓库。
 
-## 环境要求
+## 本地部署（Windows）
 
-完整本地部署需要：
+下面的命令默认在 Windows PowerShell 中执行。仓库不包含 `target/`、`dist-prod/`、`unpackage/` 和 Docker 离线镜像，首次部署必须先生成构建产物。
 
-- Docker Desktop，启用 Linux 容器。
-- Docker Compose v2 或更高版本。
+> 第一次安装 Maven、pnpm 依赖和拉取 Docker 基础镜像需要联网；依赖和镜像准备完成后，项目的本地基础功能不依赖公网运行。
 
-进行源码开发时还需要：
+### 1. 安装并检查环境
 
+需要安装：
+
+- Git。
 - JDK 17。
 - Maven 3.9 或兼容版本。
-- Node.js 16 或更高版本。
+- Node.js 16 或更高版本，推荐 Node.js 20/22 LTS。
 - pnpm 8.6 或更高版本。
-- HBuilderX，用于重新构建 Mall 多端项目。
+- Docker Desktop，并启用 Linux Containers。
+- HBuilderX，用于构建 Mall 商城 H5。
 
-## 本地部署
-
-### 1. 创建本地环境配置
+在 PowerShell 中检查：
 
 ```powershell
-Copy-Item docker-compose/.env.example docker-compose/.env
+git --version
+java -version
+mvn -version
+node --version
+pnpm --version
+docker version
+docker compose version
 ```
 
-首次启动前，请修改 `.env` 中的数据库密码。真实 `.env` 不应提交到 Git。
+如果 PowerShell 执行策略阻止 `pnpm.ps1`，后续命令可将 `pnpm` 替换为 `pnpm.cmd`。启动前请确认 Docker Desktop 已正常运行，建议为 Docker 分配至少 6 GB 内存。
 
-### 2. 准备构建产物
-
-后端：
+### 2. 克隆 `huang` 分支
 
 ```powershell
-cd Server
+git clone -b huang https://github.com/twj-programmer/R-U-I.git
+Set-Location R-U-I
+git branch --show-current
+```
+
+最后一条命令应输出 `huang`。后续命令均从仓库根目录 `R-U-I` 执行。
+
+### 3. 检查本地配置和端口
+
+完整编排使用 [docker-compose/.env](docker-compose/.env)。默认端口为：
+
+| 服务 | 本机端口 |
+|---|---:|
+| Web | 80 |
+| Mall | 3000 |
+| Server | 8080 |
+| MySQL | 3306 |
+| Redis | 6379 |
+| RabbitMQ | 5672、15672 |
+| TDengine | 6030、6041、6043-6049 |
+
+检查常用端口是否被占用：
+
+```powershell
+Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+  Where-Object LocalPort -In 80,3000,3306,5672,6379,8080,15672,6030,6041 |
+  Select-Object LocalAddress,LocalPort,OwningProcess
+```
+
+Web、Mall 和 Server 的宿主端口可在 `.env` 中修改。基础设施端口当前写在 `docker-compose.yml` 中，如有冲突，应先停止占用端口的旧服务。所有项目端口均绑定到 `127.0.0.1`，只允许本机访问。
+
+首次运行建议保留仓库中的本地开发默认配置。若修改 MySQL 密码，还必须同步修改后端 Docker profile 的主库和从库密码，否则 Server 无法连接数据库。
+
+### 4. 构建 Server 后端
+
+```powershell
+Push-Location Server
 mvn clean package -DskipTests
-cd ..
+Pop-Location
+
+Test-Path Server/mitedtsm-server/target/mitedtsm-server.jar
 ```
 
-管理后台：
+最后一条命令必须返回 `True`。首次 Maven 构建需要下载依赖，耗时取决于网络和本地缓存。
+
+### 5. 构建 InitService
 
 ```powershell
-cd Web
-pnpm install
+Push-Location InitService
+mvn clean package -DskipTests
+Pop-Location
+
+Test-Path InitService/target/mitedtsm-init-service.jar
+```
+
+最后一条命令必须返回 `True`。InitService 用于创建和验证 TDengine 数据库。
+
+### 6. 构建 Web 管理后台
+
+团队统一使用 pnpm，不要在同一次构建中混用 npm 和 pnpm：
+
+```powershell
+Push-Location Web
+pnpm install --frozen-lockfile
 pnpm run build:prod
-cd ..
+Pop-Location
+
+Test-Path Web/dist-prod/index.html
 ```
 
-商城 H5 需要在 HBuilderX 中选择“发行 -> 网站 H5”，生成目录为：
+最后一条命令必须返回 `True`。如果 `--frozen-lockfile` 因锁文件不一致而失败，应先确认锁文件变化；临时本地验证可以改用 `pnpm install`，但不要在未确认时提交自动修改的锁文件。
 
-```text
-MallFrontend/unpackage/dist/build/web
-```
+### 7. 构建 Mall 商城 H5
 
-### 3. 启动完整环境
+`MallFrontend/package.json` 当前没有 H5 命令行构建脚本，必须使用 HBuilderX：
+
+1. 打开 HBuilderX。
+2. 选择“文件 -> 导入 -> 从本地目录导入”。
+3. 选择仓库中的 `MallFrontend` 文件夹。
+4. 等待依赖识别完成；如提示安装依赖，在 `MallFrontend` 中执行 `pnpm install`。
+5. 选择“发行 -> 网站-H5手机版”。
+6. 不需要配置公网域名，完成构建。
+
+构建完成后回到 PowerShell 检查：
 
 ```powershell
-cd docker-compose
-docker compose --env-file .env up -d --build
-docker compose ps
+Test-Path MallFrontend/unpackage/dist/build/web/index.html
 ```
 
-所有宿主端口均绑定到 `127.0.0.1`，只允许本机访问。
+必须返回 `True`。Docker 中的 Mall Nginx 会挂载该目录。
 
-### 4. 本地访问地址
+### 8. 校验并启动 Docker Compose
+
+```powershell
+Push-Location docker-compose
+
+docker compose --env-file .env config --quiet
+docker compose --env-file .env up -d --build
+docker compose --env-file .env ps
+
+Pop-Location
+```
+
+启动依赖顺序为：
+
+1. MySQL、Redis、RabbitMQ、TDengine 健康。
+2. InitService 创建 TDengine 数据库并正常退出。
+3. Server 启动并通过健康检查。
+4. Web 和 Mall 启动。
+
+`mitedtsm-init-service` 显示 `Exited (0)` 是正常结果，表示初始化已成功完成，不是服务故障。
+
+### 9. 验证部署结果
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8080/actuator/health
+(Invoke-WebRequest http://127.0.0.1 -UseBasicParsing).StatusCode
+(Invoke-WebRequest http://127.0.0.1:3000 -UseBasicParsing).StatusCode
+```
+
+预期结果：
+
+- 健康接口返回 `status = UP`。
+- Web 和 Mall 都返回 HTTP `200`。
+- 管理接口或商城接口在未登录时可能返回未授权，这是正常的；出现 `502 Bad Gateway` 才表示 Nginx 无法连接 Server。
+
+本地访问地址：
 
 | 服务 | 地址 |
 |---|---|
@@ -125,13 +226,47 @@ docker compose ps
 | Server 健康检查 | http://127.0.0.1:8080/actuator/health |
 | RabbitMQ 管理页 | http://127.0.0.1:15672 |
 
-### 5. 停止服务
+### 10. 查看日志和常见故障
 
 ```powershell
-docker compose down
+Push-Location docker-compose
+
+docker compose ps
+docker compose logs --tail 200 mysql
+docker compose logs --tail 200 init-service
+docker compose logs --tail 200 server
+docker compose logs --tail 200 web mall
+
+Pop-Location
 ```
 
-该命令会保留数据库卷。`docker compose down -v` 会删除数据库、缓存和时序数据卷，仅应在明确需要完全重置且已经备份数据时使用。
+常见问题：
+
+- `docker` 命令不存在：启动 Docker Desktop，等待 Engine 就绪后重新打开终端。
+- Docker 构建提示找不到 Server Jar：重新执行第 4 步；找不到 InitService Jar：重新执行第 5 步，并确认对应的 `Test-Path` 返回 `True`。
+- Web 或 Mall 页面不存在：重新生成对应前端构建目录。
+- Server `unhealthy`：依次检查 MySQL、InitService 和 Server 日志。
+- Web/Mall 返回 502：通常是 Server 尚未健康或启动失败。
+- 容器名称或端口冲突：运行 `docker ps -a` 查找旧容器，确认数据不再需要后再处理冲突。
+- SQL 修改后没有自动执行：MySQL 初始化脚本只在空数据卷第一次创建时运行，不会在每次启动时重复执行。
+
+### 11. 代码修改后的重新部署
+
+- Server 或 InitService 修改后：重新执行 Maven 构建，再运行 `docker compose up -d --build`。
+- Web 修改后：重新执行 `pnpm run build:prod`，然后执行 `docker compose restart web`。
+- Mall 修改后：使用 HBuilderX 重新发行 H5，然后执行 `docker compose restart mall`。
+
+### 12. 停止、恢复和删除容器
+
+在 `docker-compose` 目录执行：
+
+```powershell
+docker compose stop   # 暂停容器，保留容器和数据
+docker compose start  # 恢复已暂停的容器
+docker compose down   # 删除容器和网络，保留命名数据卷
+```
+
+> **数据警告：** 不要在日常更新中执行 `docker compose down -v`，也不要随意执行 `docker volume prune`。这些命令会删除 MySQL、Redis、RabbitMQ 和 TDengine 数据卷。只有在明确需要完全重置且已经备份数据时才能使用。
 
 ## 本地源码开发
 
