@@ -2,27 +2,41 @@ package com.meession.etm.module.crm.support;
 
 import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
+import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessProductDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessStatusDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessStatusTypeDO;
 import com.meession.etm.module.crm.dal.dataobject.clue.CrmClueDO;
+import com.meession.etm.module.crm.dal.dataobject.contact.CrmContactBusinessDO;
 import com.meession.etm.module.crm.dal.dataobject.contact.CrmContactDO;
 import com.meession.etm.module.crm.dal.dataobject.contract.CrmContractDO;
+import com.meession.etm.module.crm.dal.dataobject.contract.CrmContractProductDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerLimitConfigDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerPoolConfigDO;
 import com.meession.etm.module.crm.dal.dataobject.followup.CrmFollowUpRecordDO;
+import com.meession.etm.module.crm.dal.dataobject.permission.CrmPermissionDO;
+import com.meession.etm.module.crm.dal.dataobject.product.CrmProductCategoryDO;
+import com.meession.etm.module.crm.dal.dataobject.product.CrmProductDO;
 import com.meession.etm.module.crm.dal.dataobject.receivable.CrmReceivableDO;
+import com.meession.etm.module.crm.dal.dataobject.receivable.CrmReceivablePlanDO;
 import com.meession.etm.module.crm.dal.mysql.business.CrmBusinessMapper;
+import com.meession.etm.module.crm.dal.mysql.business.CrmBusinessProductMapper;
 import com.meession.etm.module.crm.dal.mysql.business.CrmBusinessStatusMapper;
 import com.meession.etm.module.crm.dal.mysql.business.CrmBusinessStatusTypeMapper;
 import com.meession.etm.module.crm.dal.mysql.clue.CrmClueMapper;
+import com.meession.etm.module.crm.dal.mysql.contact.CrmContactBusinessMapper;
 import com.meession.etm.module.crm.dal.mysql.contact.CrmContactMapper;
 import com.meession.etm.module.crm.dal.mysql.contract.CrmContractMapper;
+import com.meession.etm.module.crm.dal.mysql.contract.CrmContractProductMapper;
 import com.meession.etm.module.crm.dal.mysql.customer.CrmCustomerLimitConfigMapper;
 import com.meession.etm.module.crm.dal.mysql.customer.CrmCustomerPoolConfigMapper;
 import com.meession.etm.module.crm.dal.mysql.customer.CrmCustomerMapper;
 import com.meession.etm.module.crm.dal.mysql.followup.CrmFollowUpRecordMapper;
+import com.meession.etm.module.crm.dal.mysql.permission.CrmPermissionMapper;
+import com.meession.etm.module.crm.dal.mysql.product.CrmProductCategoryMapper;
+import com.meession.etm.module.crm.dal.mysql.product.CrmProductMapper;
 import com.meession.etm.module.crm.dal.mysql.receivable.CrmReceivableMapper;
+import com.meession.etm.module.crm.dal.mysql.receivable.CrmReceivablePlanMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
@@ -42,21 +56,35 @@ public class CrmTestDataFactory {
     @Resource
     private CrmBusinessMapper businessMapper;
     @Resource
+    private CrmBusinessProductMapper businessProductMapper;
+    @Resource
     private CrmBusinessStatusTypeMapper businessStatusTypeMapper;
     @Resource
     private CrmBusinessStatusMapper businessStatusMapper;
     @Resource
     private CrmContractMapper contractMapper;
     @Resource
+    private CrmContractProductMapper contractProductMapper;
+    @Resource
     private CrmReceivableMapper receivableMapper;
     @Resource
+    private CrmReceivablePlanMapper receivablePlanMapper;
+    @Resource
     private CrmContactMapper contactMapper;
+    @Resource
+    private CrmContactBusinessMapper contactBusinessMapper;
     @Resource
     private CrmFollowUpRecordMapper followUpRecordMapper;
     @Resource
     private CrmCustomerPoolConfigMapper customerPoolConfigMapper;
     @Resource
     private CrmCustomerLimitConfigMapper customerLimitConfigMapper;
+    @Resource
+    private CrmProductCategoryMapper productCategoryMapper;
+    @Resource
+    private CrmProductMapper productMapper;
+    @Resource
+    private CrmPermissionMapper permissionMapper;
 
     private static final AtomicLong ID_GENERATOR = new AtomicLong(1000);
     private static final String TEST_CREATOR = "1";
@@ -199,7 +227,7 @@ public class CrmTestDataFactory {
         return createBusiness(tenantId, customerId, 1);
     }
 
-    public CrmBusinessDO createLoseBusiness(Long tenantId, Long customerId, String loseReasonCode) {
+    public CrmBusinessDO createLoseBusiness(Long tenantId, Long customerId) {
         CrmBusinessDO business = createBusiness(tenantId, customerId, 2);
         business.setEndRemark("输单原因测试");
         businessMapper.updateById(business);
@@ -314,15 +342,120 @@ public class CrmTestDataFactory {
         return config;
     }
 
+    public CrmProductCategoryDO createProductCategory(Long tenantId) {
+        CrmProductCategoryDO category = CrmProductCategoryDO.builder()
+                .id(nextId())
+                .name("测试分类")
+                .parentId(0L)
+                .build();
+        setBaseFields(category);
+        productCategoryMapper.insert(category);
+        return category;
+    }
+
+    public CrmProductDO createProduct(Long tenantId, Long categoryId) {
+        CrmProductDO product = CrmProductDO.builder()
+                .id(nextId())
+                .name("测试产品" + System.currentTimeMillis())
+                .no("PRD" + System.currentTimeMillis())
+                .unit(1)
+                .price(BigDecimal.valueOf(100))
+                .status(1)
+                .categoryId(categoryId)
+                .ownerUserId(1L)
+                .build();
+        setBaseFields(product);
+        productMapper.insert(product);
+        return product;
+    }
+
+    public CrmBusinessProductDO createBusinessProduct(Long tenantId, Long businessId, Long productId) {
+        CrmBusinessProductDO bp = CrmBusinessProductDO.builder()
+                .id(nextId())
+                .businessId(businessId)
+                .productId(productId)
+                .productPrice(BigDecimal.valueOf(100))
+                .businessPrice(BigDecimal.valueOf(90))
+                .count(BigDecimal.valueOf(10))
+                .totalPrice(BigDecimal.valueOf(900))
+                .build();
+        setBaseFields(bp);
+        businessProductMapper.insert(bp);
+        return bp;
+    }
+
+    public CrmContractProductDO createContractProduct(Long tenantId, Long contractId, Long productId) {
+        CrmContractProductDO cp = CrmContractProductDO.builder()
+                .id(nextId())
+                .contractId(contractId)
+                .productId(productId)
+                .productPrice(BigDecimal.valueOf(100))
+                .contractPrice(BigDecimal.valueOf(80))
+                .count(BigDecimal.valueOf(10))
+                .totalPrice(BigDecimal.valueOf(800))
+                .build();
+        setBaseFields(cp);
+        contractProductMapper.insert(cp);
+        return cp;
+    }
+
+    public CrmReceivablePlanDO createReceivablePlan(Long tenantId, Long contractId, Long customerId) {
+        CrmReceivablePlanDO plan = CrmReceivablePlanDO.builder()
+                .id(nextId())
+                .period(1)
+                .customerId(customerId)
+                .contractId(contractId)
+                .ownerUserId(1L)
+                .returnTime(LocalDateTime.now().plusDays(30))
+                .returnType(1)
+                .price(BigDecimal.valueOf(5000))
+                .remindDays(3)
+                .build();
+        setBaseFields(plan);
+        receivablePlanMapper.insert(plan);
+        return plan;
+    }
+
+    public CrmContactBusinessDO createContactBusiness(Long tenantId, Long contactId, Long businessId) {
+        CrmContactBusinessDO cb = CrmContactBusinessDO.builder()
+                .id(nextId())
+                .contactId(contactId)
+                .businessId(businessId)
+                .build();
+        setBaseFields(cb);
+        contactBusinessMapper.insert(cb);
+        return cb;
+    }
+
+    public CrmPermissionDO createPermission(Long tenantId, Integer bizType, Long bizId, Long userId) {
+        CrmPermissionDO permission = CrmPermissionDO.builder()
+                .id(nextId())
+                .bizType(bizType)
+                .bizId(bizId)
+                .userId(userId)
+                .level(1)
+                .build();
+        setBaseFields(permission);
+        permissionMapper.insert(permission);
+        return permission;
+    }
+
     public void clearAll() {
         followUpRecordMapper.delete(null);
-        contactMapper.delete(null);
+        contactBusinessMapper.delete(null);
+        businessProductMapper.delete(null);
+        contractProductMapper.delete(null);
+        receivablePlanMapper.delete(null);
         receivableMapper.delete(null);
         contractMapper.delete(null);
         businessMapper.delete(null);
         businessStatusMapper.delete(null);
         businessStatusTypeMapper.delete(null);
+        contactMapper.delete(null);
         clueMapper.delete(null);
+        productMapper.delete(null);
+        productCategoryMapper.delete(null);
+        permissionMapper.delete(null);
         customerMapper.delete(null);
         customerPoolConfigMapper.delete(null);
         customerLimitConfigMapper.delete(null);

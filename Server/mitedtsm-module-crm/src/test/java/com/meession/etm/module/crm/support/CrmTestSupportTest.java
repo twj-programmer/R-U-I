@@ -4,14 +4,21 @@ import com.meession.etm.framework.common.util.json.JsonUtils;
 import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.framework.test.core.ut.BaseDbUnitTest;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
+import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessProductDO;
 import com.meession.etm.module.crm.dal.dataobject.clue.CrmClueDO;
+import com.meession.etm.module.crm.dal.dataobject.contact.CrmContactBusinessDO;
 import com.meession.etm.module.crm.dal.dataobject.contact.CrmContactDO;
 import com.meession.etm.module.crm.dal.dataobject.contract.CrmContractDO;
+import com.meession.etm.module.crm.dal.dataobject.contract.CrmContractProductDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerLimitConfigDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerPoolConfigDO;
 import com.meession.etm.module.crm.dal.dataobject.followup.CrmFollowUpRecordDO;
+import com.meession.etm.module.crm.dal.dataobject.permission.CrmPermissionDO;
+import com.meession.etm.module.crm.dal.dataobject.product.CrmProductCategoryDO;
+import com.meession.etm.module.crm.dal.dataobject.product.CrmProductDO;
 import com.meession.etm.module.crm.dal.dataobject.receivable.CrmReceivableDO;
+import com.meession.etm.module.crm.dal.dataobject.receivable.CrmReceivablePlanDO;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -95,7 +102,7 @@ class CrmTestSupportTest extends BaseDbUnitTest {
     @Test
     void testCreateLoseBusiness() {
         CrmCustomerDO customer = testDataFactory.createCustomer(1L);
-        CrmBusinessDO business = testDataFactory.createLoseBusiness(1L, customer.getId(), "COMPETITOR");
+        CrmBusinessDO business = testDataFactory.createLoseBusiness(1L, customer.getId());
         assertNotNull(business);
         assertEquals(2, business.getEndStatus());
         assertNotNull(business.getEndRemark());
@@ -169,6 +176,86 @@ class CrmTestSupportTest extends BaseDbUnitTest {
         assertNotNull(config);
         assertNotNull(config.getId());
         assertEquals(1, config.getType());
+    }
+
+    @Test
+    void testCreateProductCategory() {
+        CrmProductCategoryDO category = testDataFactory.createProductCategory(1L);
+        assertNotNull(category);
+        assertNotNull(category.getId());
+        assertEquals("测试分类", category.getName());
+        assertEquals(0L, category.getParentId());
+    }
+
+    @Test
+    void testCreateProduct() {
+        CrmProductCategoryDO category = testDataFactory.createProductCategory(1L);
+        CrmProductDO product = testDataFactory.createProduct(1L, category.getId());
+        assertNotNull(product);
+        assertNotNull(product.getId());
+        assertEquals(category.getId(), product.getCategoryId());
+        assertNotNull(product.getPrice());
+    }
+
+    @Test
+    void testCreateBusinessProduct() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L);
+        CrmBusinessDO business = testDataFactory.createBusiness(1L, customer.getId());
+        CrmProductCategoryDO category = testDataFactory.createProductCategory(1L);
+        CrmProductDO product = testDataFactory.createProduct(1L, category.getId());
+        CrmBusinessProductDO bp = testDataFactory.createBusinessProduct(1L, business.getId(), product.getId());
+        assertNotNull(bp);
+        assertNotNull(bp.getId());
+        assertEquals(business.getId(), bp.getBusinessId());
+        assertEquals(product.getId(), bp.getProductId());
+    }
+
+    @Test
+    void testCreateContractProduct() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L);
+        CrmBusinessDO business = testDataFactory.createBusiness(1L, customer.getId());
+        CrmContractDO contract = testDataFactory.createContract(1L, customer.getId(), business.getId());
+        CrmProductCategoryDO category = testDataFactory.createProductCategory(1L);
+        CrmProductDO product = testDataFactory.createProduct(1L, category.getId());
+        CrmContractProductDO cp = testDataFactory.createContractProduct(1L, contract.getId(), product.getId());
+        assertNotNull(cp);
+        assertNotNull(cp.getId());
+        assertEquals(contract.getId(), cp.getContractId());
+        assertEquals(product.getId(), cp.getProductId());
+    }
+
+    @Test
+    void testCreateReceivablePlan() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L);
+        CrmBusinessDO business = testDataFactory.createBusiness(1L, customer.getId());
+        CrmContractDO contract = testDataFactory.createContract(1L, customer.getId(), business.getId());
+        CrmReceivablePlanDO plan = testDataFactory.createReceivablePlan(1L, contract.getId(), customer.getId());
+        assertNotNull(plan);
+        assertNotNull(plan.getId());
+        assertEquals(contract.getId(), plan.getContractId());
+        assertEquals(customer.getId(), plan.getCustomerId());
+    }
+
+    @Test
+    void testCreateContactBusiness() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L);
+        CrmBusinessDO business = testDataFactory.createBusiness(1L, customer.getId());
+        CrmContactDO contact = testDataFactory.createContact(1L, customer.getId());
+        CrmContactBusinessDO cb = testDataFactory.createContactBusiness(1L, contact.getId(), business.getId());
+        assertNotNull(cb);
+        assertNotNull(cb.getId());
+        assertEquals(contact.getId(), cb.getContactId());
+        assertEquals(business.getId(), cb.getBusinessId());
+    }
+
+    @Test
+    void testCreatePermission() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L);
+        CrmPermissionDO permission = testDataFactory.createPermission(1L, 1, customer.getId(), 1L);
+        assertNotNull(permission);
+        assertNotNull(permission.getId());
+        assertEquals(customer.getId(), permission.getBizId());
+        assertEquals(1L, permission.getUserId());
     }
 
     @Test
