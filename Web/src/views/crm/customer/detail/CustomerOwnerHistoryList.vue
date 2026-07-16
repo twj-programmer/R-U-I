@@ -7,7 +7,7 @@
     <el-table-column :label="t('operator')" prop="operatorUserName" />
     <el-table-column :label="t('changeTime')" prop="changeTime">
       <template #default="{ row }">
-        <span>{{ formatDateTime(row.changeTime) }}</span>
+        <span>{{ formatDate(row.changeTime) }}</span>
       </template>
     </el-table-column>
   </el-table>
@@ -15,7 +15,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch } from 'vue'
 import * as CustomerApi from '@/api/crm/customer'
-import { formatDateTime } from '@/utils/dateUtils'
+import { formatDate } from '@/utils/formatTime'
 
 defineOptions({ name: 'CustomerOwnerHistoryList' })
 

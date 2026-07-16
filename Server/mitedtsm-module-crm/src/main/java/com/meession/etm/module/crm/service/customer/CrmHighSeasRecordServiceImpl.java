@@ -55,6 +55,9 @@ public class CrmHighSeasRecordServiceImpl implements CrmHighSeasRecordService {
     @Override
     public CrmHighSeasRecordRespVO getById(Long id) {
         CrmHighSeasRecordDO recordDO = highSeasRecordMapper.selectById(id);
+        if (recordDO != null && !TenantContextHolder.getTenantId().equals(recordDO.getTenantId())) {
+            return null;
+        }
         return recordDO != null ? buildRespVO(recordDO) : null;
     }
 
