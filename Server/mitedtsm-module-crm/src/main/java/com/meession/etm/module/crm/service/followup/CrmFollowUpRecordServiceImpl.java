@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.service.followup;
 
 import cn.hutool.core.collection.CollUtil;
@@ -21,6 +22,7 @@ import com.meession.etm.module.crm.service.permission.CrmPermissionService;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Collection;
@@ -62,9 +64,10 @@ public class CrmFollowUpRecordServiceImpl implements CrmFollowUpRecordService {
     private CrmCustomerService customerService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     @CrmPermission(bizTypeValue = "#createReqVO.bizType", bizId = "#createReqVO.bizId", level = CrmPermissionLevelEnum.WRITE)
     public Long createFollowUpRecord(CrmFollowUpRecordSaveReqVO createReqVO) {
-        // 1. 创建更进记录
+        // 1. 创建跟进记录
         CrmFollowUpRecordDO record = BeanUtils.toBean(createReqVO, CrmFollowUpRecordDO.class);
         crmFollowUpRecordMapper.insert(record);
 

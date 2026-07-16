@@ -1,9 +1,14 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.controller.admin.business.vo.business;
 
 import com.meession.etm.module.crm.framework.operatelog.core.CrmCustomerParseFunction;
 import com.meession.etm.module.crm.framework.operatelog.core.SysAdminUserParseFunction;
 import com.mzt.logapi.starter.annotation.DiffLogField;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,6 +27,10 @@ public class CrmBusinessSaveReqVO {
 
     @Schema(description = "主键", requiredMode = Schema.RequiredMode.REQUIRED, example = "32129")
     private Long id;
+
+    @Schema(description = "乐观锁版本；更新时必填", example = "0")
+    @Min(value = 0, message = "版本号不能小于 0")
+    private Integer version;
 
     @Schema(description = "商机名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "李四")
     @DiffLogField(name = "商机名称")
@@ -56,6 +65,9 @@ public class CrmBusinessSaveReqVO {
     @Schema(description = "整单折扣", requiredMode = Schema.RequiredMode.REQUIRED, example = "55.00")
     @DiffLogField(name = "整单折扣")
     @NotNull(message = "整单折扣不能为空")
+    @DecimalMin(value = "0.00", message = "整单折扣不能小于 0")
+    @DecimalMax(value = "100.00", message = "整单折扣不能大于 100")
+    @Digits(integer = 3, fraction = 2, message = "整单折扣最多 2 位小数")
     private BigDecimal discountPercent;
 
     @Schema(description = "备注", example = "随便")
@@ -74,6 +86,9 @@ public class CrmBusinessSaveReqVO {
     @AllArgsConstructor
     public static class BusinessProduct {
 
+        @Schema(description = "商机产品行编号；更新已有产品行时传入")
+        private Long id;
+
         @Schema(description = "产品编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "20529")
         @NotNull(message = "产品编号不能为空")
         private Long productId;
@@ -84,11 +99,15 @@ public class CrmBusinessSaveReqVO {
 
         @Schema(description = "商机价格", requiredMode = Schema.RequiredMode.REQUIRED, example = "123.00")
         @NotNull(message = "商机价格不能为空")
+        @DecimalMin(value = "0.01", message = "商机价格必须大于 0")
+        @Digits(integer = 18, fraction = 2, message = "商机价格整数最多 18 位且最多 2 位小数")
         private BigDecimal businessPrice;
 
         @Schema(description = "产品数量", requiredMode = Schema.RequiredMode.REQUIRED, example = "8911")
         @NotNull(message = "产品数量不能为空")
-        private Integer count;
+        @DecimalMin(value = "0.001", message = "产品数量必须大于 0")
+        @Digits(integer = 18, fraction = 3, message = "产品数量整数最多 18 位且最多 3 位小数")
+        private BigDecimal count;
 
     }
 

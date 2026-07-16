@@ -1,11 +1,14 @@
+<!-- 23计科4班 黄金戈 -->
 <template>
   <BusinessDetailsHeader v-loading="loading" :business="business">
-    <el-button v-if="permissionListRef?.validateWrite" @click="openForm('update', business.id)">
+    <el-button
+      v-if="permissionListRef?.validateWrite && !business.endStatus"
+      @click="openForm('update', business.id)"
+    >
       {{ t('common.edit') }}
     </el-button>
     <el-button
-      v-if="permissionListRef?.validateWrite"
-      :disabled="business.endStatus"
+      v-if="permissionListRef?.validateWrite && !business.endStatus"
       type="success"
       @click="openStatusForm()"
     >
@@ -58,6 +61,8 @@
   <CrmTransferForm ref="transferFormRef" :biz-type="BizTypeEnum.CRM_BUSINESS" @success="close" />
 </template>
 <script lang="ts" setup>
+import { onMounted, ref, unref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useTagsViewStore } from '@/store/modules/tagsView'
 import * as BusinessApi from '@/api/crm/business'
 import BusinessDetailsHeader from './BusinessDetailsHeader.vue'
@@ -73,6 +78,8 @@ import ContactList from '@/views/crm/contact/components/ContactList.vue'
 import BusinessUpdateStatusForm from '@/views/crm/business/BusinessUpdateStatusForm.vue'
 import ContractList from '@/views/crm/contract/components/ContractList.vue'
 import BusinessProductList from '@/views/crm/business/detail/BusinessProductList.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useMessage } from '@/hooks/web/useMessage'
 
 defineOptions({ name: 'CrmBusinessDetail' })
 
