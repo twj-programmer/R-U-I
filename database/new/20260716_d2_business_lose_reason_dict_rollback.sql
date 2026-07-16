@@ -28,6 +28,7 @@ BEGIN
         DELETE FROM `system_dict_type` WHERE `type` = 'crm_business_lose_reason';
     ELSE
         SELECT CONCAT('ROLLBACK ABORTED: Found ', ref_count, ' business records referencing lose reason codes') AS rollback_status;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = CONCAT('Rollback failed: Found ', ref_count, ' business records referencing lose reason codes');
     END IF;
 END$$
 
