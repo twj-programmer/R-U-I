@@ -2,6 +2,7 @@ package com.meession.etm.module.crm.controller.admin.statistics;
 
 import com.meession.etm.framework.apilog.core.annotation.ApiAccessLog;
 import com.meession.etm.framework.common.pojo.CommonResult;
+import com.meession.etm.framework.common.util.http.HttpUtils;
 import com.meession.etm.framework.common.util.object.BeanUtils;
 import com.meession.etm.framework.excel.core.util.ExcelUtils;
 import com.meession.etm.module.crm.controller.admin.statistics.vo.customer.*;
@@ -85,6 +86,10 @@ public class CrmStatisticsCustomerController {
         List<CrmStatisticsCustomerContractSummaryRespVO> summaryList = customerService.getContractSummary(reqVO);
         String fileName = "客户转化明细_" + LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".xlsx";
+        // ExcelUtils currently writes the response body before setting headers. Tomcat may commit a small
+        // workbook during that write, so freeze the D2-STAT-01 download contract before writing the body.
+        response.setHeader("Content-Disposition", "attachment;filename=" + HttpUtils.encodeUtf8(fileName));
+        response.setContentType("application/vnd.ms-excel;charset=UTF-8");
         ExcelUtils.write(response, fileName, "客户转化明细",
                 CrmStatisticsCustomerContractSummaryExportVO.class,
                 BeanUtils.toBean(summaryList, CrmStatisticsCustomerContractSummaryExportVO.class));
