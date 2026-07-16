@@ -24,21 +24,25 @@
           <el-option
             v-for="item in BusinessStatusApi.DEFAULT_STATUSES"
             :key="`end:${item.endStatus}`"
-            :label="`${item.name} (${t('crm.business.winRate')}：${item.percent}%)`"
+            :label="`${t(item.nameKey)} (${t('crm.business.winRate')}：${item.percent}%)`"
             :value="`end:${item.endStatus}`"
             :disabled="!currentStageFound"
           />
         </el-select>
-        <div class="text-xs text-gray-500 mt-1">阶段仅允许向前流转，终态提交后不可恢复</div>
+        <div class="text-xs text-gray-500 mt-1">{{ t('crm.business.stageForwardOnly') }}</div>
       </el-form-item>
 
       <el-form-item
         v-if="selectedEndStatus === 2"
-        label="输单原因"
+        :label="t('crm.business.loseReason')"
         prop="loseReasonCode"
-        :rules="[{ required: true, message: '请选择输单原因', trigger: 'change' }]"
+        :rules="[{ required: true, message: t('crm.business.loseReasonRequired'), trigger: 'change' }]"
       >
-        <el-select v-model="formData.loseReasonCode" placeholder="请选择输单原因" class="w-1/1">
+        <el-select
+          v-model="formData.loseReasonCode"
+          :placeholder="t('crm.business.loseReasonPlaceholder')"
+          class="w-1/1"
+        >
           <el-option
             v-for="item in loseReasonOptions"
             :key="item.value"
@@ -48,7 +52,7 @@
         </el-select>
         <el-alert
           v-if="loseReasonOptions.length === 0"
-          title="尚未配置启用的输单原因，请联系管理员配置"
+          :title="t('crm.business.loseReasonUnconfigured')"
           type="warning"
           :closable="false"
           class="mt-2"
@@ -57,7 +61,11 @@
 
       <el-form-item
         v-if="selectedEndStatus === 2 || selectedEndStatus === 3"
-        :label="selectedEndStatus === 2 ? '输单说明' : '无效说明'"
+        :label="
+          selectedEndStatus === 2
+            ? t('crm.business.loseRemark')
+            : t('crm.business.invalidRemark')
+        "
         prop="endRemark"
       >
         <el-input
@@ -66,7 +74,7 @@
           :rows="3"
           maxlength="500"
           show-word-limit
-          placeholder="选填，最多 500 字"
+          :placeholder="t('crm.business.endRemarkPlaceholder')"
         />
       </el-form-item>
     </el-form>
@@ -141,7 +149,7 @@ const open = async (business: BusinessApi.BusinessVO) => {
     currentStageFound.value = currentStatus !== undefined
     currentSort.value = currentStatus?.sort ?? -1
     if (!currentStatus) {
-      message.warning('当前阶段数据异常，暂时无法变更状态；请联系管理员核验阶段配置')
+      message.warning(t('crm.business.invalidCurrentStage'))
     }
   } finally {
     formLoading.value = false
@@ -174,8 +182,15 @@ const submitForm = async () => {
 
   const targetName = target.startsWith('stage:')
     ? statusList.value.find((item) => item.id === payload.statusId)?.name
-    : BusinessStatusApi.DEFAULT_STATUSES.find((item) => item.endStatus === payload.endStatus)?.name
-  await message.confirm(`确认将商机从当前阶段变更为“${targetName || '目标状态'}”吗？`)
+    : t(
+        BusinessStatusApi.DEFAULT_STATUSES.find((item) => item.endStatus === payload.endStatus)
+          ?.nameKey || 'crm.business.targetStatus'
+      )
+  await message.confirm(
+    t('crm.business.changeStatusConfirm', {
+      target: targetName || t('crm.business.targetStatus')
+    })
+  )
 
   formLoading.value = true
   try {

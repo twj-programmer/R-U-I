@@ -163,7 +163,7 @@ public class CrmBusinessServiceImpl implements CrmBusinessService {
         CrmBusinessDO updateObj = BeanUtils.toBean(updateReqVO, CrmBusinessDO.class);
         calculateTotalPrice(updateObj, businessProducts);
         if (businessMapper.updateBusinessByVersion(updateObj, updateReqVO.getVersion()) == 0) {
-            handleOptimisticLockFailure(updateReqVO.getId());
+            throwVersionConflict();
         }
         // 2.2 在同一事务内更新关联商品
         updateBusinessProduct(updateObj.getId(), businessProducts);
@@ -371,7 +371,7 @@ public class CrmBusinessServiceImpl implements CrmBusinessService {
                     reqVO.getEndStatus(), trimToNull(reqVO.getLoseReasonCode()), trimToNull(reqVO.getEndRemark()));
         }
         if (updateCount == 0) {
-            handleOptimisticLockFailure(reqVO.getId());
+            throwVersionConflict();
         }
 
         LogRecordContext.putVariable("businessName", business.getName());
@@ -395,11 +395,7 @@ public class CrmBusinessServiceImpl implements CrmBusinessService {
         }
     }
 
-    private void handleOptimisticLockFailure(Long id) {
-        CrmBusinessDO latest = businessMapper.selectById(id);
-        if (latest == null) {
-            throw exception(BUSINESS_NOT_EXISTS);
-        }
+    private void throwVersionConflict() {
         throw exception(BUSINESS_UPDATE_VERSION_CONFLICT);
     }
 

@@ -18,20 +18,20 @@ export interface BusinessStatusTypeVO {
 export const DEFAULT_STATUSES = [
   {
     endStatus: 1,
-    key: '结束',
-    name: '赢单',
+    key: 'end',
+    nameKey: 'crm.business.endStatusWin',
     percent: 100
   },
   {
     endStatus: 2,
-    key: '结束',
-    name: '输单',
+    key: 'end',
+    nameKey: 'crm.business.endStatusLose',
     percent: 0
   },
   {
     endStatus: 3,
-    key: '结束',
-    name: '无效',
+    key: 'end',
+    nameKey: 'crm.business.endStatusInvalid',
     percent: 0
   }
 ]

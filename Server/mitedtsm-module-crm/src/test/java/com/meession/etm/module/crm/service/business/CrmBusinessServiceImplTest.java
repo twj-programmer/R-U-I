@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -116,7 +117,7 @@ class CrmBusinessServiceImplTest {
 
     @Test
     void updateStatus_shouldReturnFrozenVersionConflictCode() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness(), activeBusiness().setVersion(3));
+        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
         when(statusService.getBusinessStatus(11L)).thenReturn(status(11L, 1));
         when(statusService.validateBusinessStatus(10L, 13L)).thenReturn(status(13L, 3));
         when(businessMapper.updateStageByVersion(1L, 2, 13L)).thenReturn(0);
@@ -124,6 +125,7 @@ class CrmBusinessServiceImplTest {
         assertServiceException(() -> service.updateBusinessStatus(
                 new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setStatusId(13L)),
                 BUSINESS_UPDATE_VERSION_CONFLICT);
+        verify(businessMapper, times(1)).selectById(1L);
     }
 
     @Test
@@ -148,13 +150,14 @@ class CrmBusinessServiceImplTest {
 
     @Test
     void updateBusiness_shouldReturnFrozenVersionConflictCode() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness(), activeBusiness().setVersion(3));
+        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
         when(businessMapper.updateBusinessByVersion(any(), eq(2))).thenReturn(0);
 
         CrmBusinessSaveReqVO reqVO = new CrmBusinessSaveReqVO().setId(1L).setVersion(2)
                 .setDiscountPercent(BigDecimal.ZERO).setProducts(List.of());
 
         assertServiceException(() -> service.updateBusiness(reqVO), BUSINESS_UPDATE_VERSION_CONFLICT);
+        verify(businessMapper, times(1)).selectById(1L);
     }
 
     @Test

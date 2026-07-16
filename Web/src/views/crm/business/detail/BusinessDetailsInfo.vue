@@ -23,13 +23,19 @@
           </el-descriptions-item>
           <el-descriptions-item :label="t('crm.business.statusName')">{{ business.statusName }}</el-descriptions-item>
           <el-descriptions-item :label="t('crm.business.remark')">{{ business.remark }}</el-descriptions-item>
-          <el-descriptions-item v-if="business.endStatus" label="终态">
+          <el-descriptions-item v-if="business.endStatus" :label="t('crm.business.terminalStatus')">
             <dict-tag :type="DICT_TYPE.CRM_BUSINESS_END_STATUS_TYPE" :value="business.endStatus" />
           </el-descriptions-item>
-          <el-descriptions-item v-if="business.endStatus === 2" label="输单原因">
+          <el-descriptions-item
+            v-if="business.endStatus === 2"
+            :label="t('crm.business.loseReason')"
+          >
             <dict-tag type="crm_business_lose_reason" :value="business.loseReasonCode || ''" />
           </el-descriptions-item>
-          <el-descriptions-item v-if="business.endRemark" label="结束说明">
+          <el-descriptions-item
+            v-if="business.endRemark"
+            :label="t('crm.business.endDescription')"
+          >
             {{ business.endRemark }}
           </el-descriptions-item>
         </el-descriptions>

@@ -25,7 +25,11 @@
               <el-option
                 v-if="isHistoricalUnavailable(row)"
                 :key="row.productId"
-                :label="`${row.productName || row.productId}（已停用）`"
+                :label="
+                  t('crm.business.disabledProductLabel', {
+                    name: row.productName || row.productId
+                  })
+                "
                 :value="row.productId"
                 disabled
               />
@@ -39,7 +43,7 @@
             </el-select>
           </el-form-item>
           <div v-if="isHistoricalUnavailable(row)" class="text-xs text-warning mt-1">
-            已停用产品只能保留或删除
+            {{ t('crm.business.disabledProductHint') }}
           </div>
         </template>
       </el-table-column>
@@ -197,7 +201,7 @@ const onChangeProduct = (productId: number | undefined, row: BusinessApi.Busines
     return
   }
   if (isProductSelected(productId, row)) {
-    message.warning('同一报价中不能重复选择产品')
+    message.warning(t('crm.business.duplicateProduct'))
     clearProductSnapshot(row)
     return
   }
@@ -214,7 +218,7 @@ const onChangeProduct = (productId: number | undefined, row: BusinessApi.Busines
 const validate = async () => {
   const ids = formData.value.map((item) => item.productId).filter(Boolean)
   if (new Set(ids).size !== ids.length) {
-    message.warning('同一报价中不能重复选择产品')
+    message.warning(t('crm.business.duplicateProduct'))
     throw new Error('duplicate business product')
   }
   return await formRef.value?.validate()

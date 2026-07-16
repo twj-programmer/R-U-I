@@ -13,7 +13,7 @@ SET @ddl = IF(
           AND COLUMN_NAME = 'lose_reason_code'
     ),
     'SELECT ''crm_business.lose_reason_code already exists'' AS migration_message',
-    'ALTER TABLE `crm_business` ADD COLUMN `lose_reason_code` varchar(64) NULL COMMENT ''输单原因字典编码'' AFTER `end_status`'
+    'ALTER TABLE `crm_business` ADD COLUMN `lose_reason_code` varchar(64) NULL COMMENT ''输单原因字典编码 [D2-BIZ-01]'' AFTER `end_status`'
 );
 PREPARE stmt FROM @ddl;
 EXECUTE stmt;
@@ -28,7 +28,7 @@ SET @ddl = IF(
           AND COLUMN_NAME = 'version'
     ),
     'SELECT ''crm_business.version already exists'' AS migration_message',
-    'ALTER TABLE `crm_business` ADD COLUMN `version` int NOT NULL DEFAULT 0 COMMENT ''乐观锁版本号'' AFTER `end_remark`'
+    'ALTER TABLE `crm_business` ADD COLUMN `version` int NOT NULL DEFAULT 0 COMMENT ''乐观锁版本号 [D2-BIZ-01]'' AFTER `end_remark`'
 );
 PREPARE stmt FROM @ddl;
 EXECUTE stmt;
@@ -39,7 +39,7 @@ UPDATE `crm_business`
 SET `version` = 0
 WHERE `version` IS NULL;
 
-SELECT `COLUMN_NAME`, `COLUMN_TYPE`, `IS_NULLABLE`, `COLUMN_DEFAULT`
+SELECT `COLUMN_NAME`, `COLUMN_TYPE`, `IS_NULLABLE`, `COLUMN_DEFAULT`, `COLUMN_COMMENT`
 FROM information_schema.COLUMNS
 WHERE `TABLE_SCHEMA` = @schema_name
   AND `TABLE_NAME` = 'crm_business'
