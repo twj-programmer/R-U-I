@@ -636,7 +636,6 @@ export default {
     auditPending: 'Pending',
     auditPassed: 'Passed',
     auditRejected: 'Rejected',
-    auditCancelled: 'Cancelled',
     receivablePending: 'Pending',
     receivableOverdue: 'Overdue',
     receivableDone: 'Done',

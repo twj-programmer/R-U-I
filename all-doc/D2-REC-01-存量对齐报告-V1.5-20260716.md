@@ -1,9 +1,9 @@
 # D2-REC-01 存量对齐报告
 
-> **成员**：唐文军  
-> **任务**：D2-REC-01 回款审批口径与回归验证  
-> **分支**：`feature/finance`  
-> **基线**：V1.5（`origin/docs`），代码基线 `origin/develop@c1cfd98`  
+> **成员**：唐文军
+> **任务**：D2-REC-01 回款审批口径与回归验证
+> **分支**：`feature/finance`
+> **基线**：V1.5（`origin/docs`），代码基线 `origin/develop@c1cfd98`
 > **核验日期**：2026-07-16
 
 ## 1. 分支状态

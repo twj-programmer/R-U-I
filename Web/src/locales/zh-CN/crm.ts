@@ -636,7 +636,6 @@ export default {
     auditPending: '待审批',
     auditPassed: '审核通过',
     auditRejected: '审核不通过',
-    auditCancelled: '已取消',
     receivablePending: '待回款',
     receivableOverdue: '已逾期',
     receivableDone: '已回款',

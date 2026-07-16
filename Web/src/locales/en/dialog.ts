@@ -1,4 +1,7 @@
 export default {
-  confirm: "Confirm",
-  cancel: "Cancel"
+  dialog: 'Dialog',
+  open: 'Open',
+  close: 'Close',
+  confirm: 'Confirm',
+  cancel: 'Cancel'
 }
