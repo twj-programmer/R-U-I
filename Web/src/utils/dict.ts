@@ -98,13 +98,13 @@ export const getDictObj = (dictType: string, value: any): DictDataType | undefin
  */
 export const getDictLabel = (dictType: string, value: any): string => {
   const dictOptions: DictDataType[] = getDictOptions(dictType)
-  const dictLabel = ref('')
+  let dictLabel = ''
   dictOptions.forEach((dict: DictDataType) => {
     if (dict.value === value + '') {
-      dictLabel.value = dict.label
+      dictLabel = dict.label
     }
   })
-  return dictLabel.value
+  return dictLabel
 }
 
 export enum DICT_TYPE {
@@ -211,6 +211,7 @@ export enum DICT_TYPE {
   CRM_PERMISSION_LEVEL = 'crm_permission_level', // CRM 数据权限的级别
   CRM_PRODUCT_UNIT = 'crm_product_unit', // CRM 产品单位
   CRM_FOLLOW_UP_TYPE = 'crm_follow_up_type', // CRM 跟进方式
+  CRM_BUSINESS_LOSE_REASON = 'crm_business_lose_reason', // CRM 商机输单原因
 
   // ========== ERP - 企业资源计划模块  ==========
   ERP_AUDIT_STATUS = 'erp_audit_status', // ERP 审批状态
