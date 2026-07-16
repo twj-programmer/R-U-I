@@ -47,7 +47,7 @@
           <el-table-column align="center" :label="t('crm.business.stageName')" min-width="160" prop="name">
             <template #default="{ row }">
               <el-input v-if="!row.endStatus" v-model="row.name" :placeholder="t('crm.business.statusNamePlaceholder')" />
-              <el-text v-else>{{ row.name }}</el-text>
+              <el-text v-else>{{ t(row.nameKey) }}</el-text>
             </template>
           </el-table-column>
           <el-table-column min-width="140" align="center" :label="t('crm.business.winRatePercent')" prop="percent">

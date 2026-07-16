@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.dal.dataobject.business;
 
 import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
@@ -81,9 +82,17 @@ public class CrmBusinessDO extends BaseDO {
      */
     private Integer endStatus;
     /**
+     * 输单原因字典编码
+     */
+    private String loseReasonCode;
+    /**
      * 结束时的备注
      */
     private String endRemark;
+    /**
+     * 乐观锁版本号
+     */
+    private Integer version;
 
     /**
      * 预计成交日期

@@ -1,10 +1,13 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.controller.admin.business.vo.business;
 
 import com.meession.etm.framework.common.validation.InEnum;
 import com.meession.etm.module.crm.enums.business.CrmBusinessEndStatusEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Schema(description = "管理后台 - CRM 商机更新状态 Request VO")
@@ -15,6 +18,11 @@ public class CrmBusinessUpdateStatusReqVO {
     @NotNull(message = "商机编号不能为空")
     private Long id;
 
+    @Schema(description = "乐观锁版本", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    @NotNull(message = "版本号不能为空")
+    @Min(value = 0, message = "版本号不能小于 0")
+    private Integer version;
+
     @Schema(description = "状态编号", example = "1")
     private Long statusId;
 
@@ -22,9 +30,17 @@ public class CrmBusinessUpdateStatusReqVO {
     @InEnum(value = CrmBusinessEndStatusEnum.class)
     private Integer endStatus;
 
+    @Schema(description = "输单原因字典编码")
+    @Size(max = 64, message = "输单原因编码不能超过 64 个字符")
+    private String loseReasonCode;
+
+    @Schema(description = "结束说明")
+    @Size(max = 500, message = "结束说明不能超过 500 个字符")
+    private String endRemark;
+
     @AssertTrue(message = "变更状态不正确")
     public boolean isStatusValid() {
-        return statusId != null || endStatus != null;
+        return (statusId == null) != (endStatus == null);
     }
 
 }

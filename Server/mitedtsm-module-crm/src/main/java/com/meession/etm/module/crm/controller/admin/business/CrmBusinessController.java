@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.controller.admin.business;
 
 import cn.hutool.core.collection.CollUtil;
@@ -87,7 +88,8 @@ public class CrmBusinessController {
     @PutMapping("/update-status")
     @Operation(summary = "更新商机状态")
     @PreAuthorize("@ss.hasPermission('crm:business:update')")
-    public CommonResult<Boolean> updateBusinessStatus(@Valid @RequestBody CrmBusinessUpdateStatusReqVO updateStatusReqVO) {
+    public CommonResult<Boolean> updateBusinessStatus(
+            @Valid @RequestBody CrmBusinessUpdateStatusReqVO updateStatusReqVO) {
         businessService.updateBusinessStatus(updateStatusReqVO);
         return success(true);
     }
@@ -206,8 +208,8 @@ public class CrmBusinessController {
             });
             // 2.3 设置商机状态
             MapUtils.findAndThen(statusTypeMap, businessVO.getStatusTypeId(), statusType -> businessVO.setStatusTypeName(statusType.getName()));
-            MapUtils.findAndThen(statusMap, businessVO.getStatusId(), status -> businessVO.setStatusName(
-                    businessService.getBusinessStatusName(businessVO.getEndStatus(), status)));
+            CrmBusinessStatusDO status = statusMap.get(businessVO.getStatusId());
+            businessVO.setStatusName(businessService.getBusinessStatusName(businessVO.getEndStatus(), status));
         });
     }
 

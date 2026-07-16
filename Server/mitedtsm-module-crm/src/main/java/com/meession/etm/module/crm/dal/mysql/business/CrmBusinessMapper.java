@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.dal.mysql.business;
 
 import com.meession.etm.framework.common.pojo.PageResult;
@@ -22,6 +23,36 @@ import java.util.List;
  */
 @Mapper
 public interface CrmBusinessMapper extends BaseMapperX<CrmBusinessDO> {
+
+    default int updateBusinessByVersion(CrmBusinessDO updateObj, Integer version) {
+        updateObj.setVersion(null);
+        return update(updateObj, new LambdaUpdateWrapper<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getId, updateObj.getId())
+                .eq(CrmBusinessDO::getVersion, version)
+                .isNull(CrmBusinessDO::getEndStatus)
+                .setSql("version = version + 1"));
+    }
+
+    default int updateStageByVersion(Long id, Integer version, Long statusId) {
+        return update(new LambdaUpdateWrapper<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getId, id)
+                .eq(CrmBusinessDO::getVersion, version)
+                .isNull(CrmBusinessDO::getEndStatus)
+                .set(CrmBusinessDO::getStatusId, statusId)
+                .setSql("version = version + 1"));
+    }
+
+    default int updateEndStatusByVersion(Long id, Integer version, Integer endStatus,
+                                         String loseReasonCode, String endRemark) {
+        return update(new LambdaUpdateWrapper<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getId, id)
+                .eq(CrmBusinessDO::getVersion, version)
+                .isNull(CrmBusinessDO::getEndStatus)
+                .set(CrmBusinessDO::getEndStatus, endStatus)
+                .set(CrmBusinessDO::getLoseReasonCode, loseReasonCode)
+                .set(CrmBusinessDO::getEndRemark, endRemark)
+                .setSql("version = version + 1"));
+    }
 
     default int updateOwnerUserIdById(Long id, Long ownerUserId) {
         return update(new LambdaUpdateWrapper<CrmBusinessDO>()
