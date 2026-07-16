@@ -27,20 +27,29 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,22 +88,31 @@ class CrmStatisticsCustomerExportContractTest {
 
     @Test
     void receivableDeletedConditionShouldRemainInLeftJoin() throws IOException {
-        String resource = "mapper/statistics/CrmStatisticsCustomerMapper.xml";
-        String xml;
-        try (InputStream input = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource)) {
-            assertNotNull(input, resource);
-            xml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
-        }
-
-        int selectStart = xml.indexOf("<select id=\"selectContractSummary\"");
-        int selectEnd = xml.indexOf("</select>", selectStart);
-        assertTrue(selectStart >= 0 && selectEnd > selectStart);
-        String select = xml.substring(selectStart, selectEnd);
+        String select = readContractSummarySelect();
         int whereStart = select.indexOf("WHERE");
         assertTrue(whereStart > 0);
         assertTrue(select.substring(0, whereStart).contains("AND receivable.deleted = 0"));
         assertFalse(select.substring(whereStart).contains("receivable.deleted = 0"));
         assertTrue(select.contains("IFNULL(receivable.price, 0) AS receivable_price"));
+    }
+
+    @Test
+    void contractSummaryQueryShouldRemainReadOnly() throws IOException {
+        String select = readContractSummarySelect().toUpperCase();
+        assertFalse(select.matches("(?s).*\\b(INSERT|UPDATE|DELETE)\\b.*"));
+    }
+
+    @Test
+    void permissionRollbackShouldOnlyDeleteMigrationOwnedMenu() throws IOException {
+        String forward = readRepositoryFile(
+                "database/new/20260716_d2_statistics_customer_export_permission.sql");
+        String rollback = readRepositoryFile(
+                "database/new/20260716_d2_statistics_customer_export_permission_rollback.sql");
+
+        assertTrue(forward.contains("'D2-STAT-01', NOW(), 'D2-STAT-01', NOW()"));
+        assertEquals(2, rollback.lines().filter(line -> line.contains("`creator` = 'D2-STAT-01'")).count());
+        assertTrue(rollback.contains("menu.`permission` = 'crm:statistics-customer:export'"));
+        assertTrue(rollback.contains("WHERE `permission` = 'crm:statistics-customer:export'"));
     }
 
     @Test
@@ -174,6 +192,48 @@ class CrmStatisticsCustomerExportContractTest {
         assertEquals("2026-07-16 10:30:00", exported.get(9));
     }
 
+    @Test
+    void serviceFailureShouldNotWritePartialWorkbook() {
+        CrmStatisticsCustomerService service = mock(CrmStatisticsCustomerService.class);
+        CrmStatisticsCustomerController controller = new CrmStatisticsCustomerController();
+        ReflectionTestUtils.setField(controller, "customerService", service);
+        CrmStatisticsCustomerReqVO reqVO = new CrmStatisticsCustomerReqVO();
+        when(service.getContractSummary(same(reqVO))).thenThrow(new IllegalStateException("query failed"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertThrows(IllegalStateException.class, () -> controller.exportContractSummary(reqVO, response));
+        assertEquals(0, response.getContentAsByteArray().length);
+        assertNull(response.getHeader("Content-Disposition"));
+    }
+
+    @Test
+    void concurrentExportsShouldKeepEachHttpResponseComplete() throws Exception {
+        CrmStatisticsCustomerService service = mock(CrmStatisticsCustomerService.class);
+        when(service.getContractSummary(org.mockito.ArgumentMatchers.any())).thenReturn(Collections.emptyList());
+        CrmStatisticsCustomerController controller = new CrmStatisticsCustomerController();
+        ReflectionTestUtils.setField(controller, "customerService", service);
+        initEmptyDictApi();
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        try {
+            List<Future<MockHttpServletResponse>> futures = IntStream.range(0, 8)
+                    .mapToObj(index -> executor.submit(() -> {
+                        MockHttpServletResponse response = new MockHttpServletResponse();
+                        controller.exportContractSummary(new CrmStatisticsCustomerReqVO(), response);
+                        return response;
+                    }))
+                    .toList();
+            for (Future<MockHttpServletResponse> future : futures) {
+                MockHttpServletResponse response = future.get();
+                assertFilename(response);
+                assertEquals("application/vnd.ms-excel;charset=UTF-8", response.getContentType());
+                assertEquals(1, readAllRows(response).size());
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+        verify(service, times(8)).getContractSummary(org.mockito.ArgumentMatchers.any());
+    }
+
     private static void initEmptyDictApi() {
         DictDataCommonApi dictDataApi = mock(DictDataCommonApi.class);
         when(dictDataApi.getDictDataList(anyString())).thenReturn(Collections.emptyList());
@@ -197,6 +257,31 @@ class CrmStatisticsCustomerExportContractTest {
         return FastExcelFactory.read(new ByteArrayInputStream(response.getContentAsByteArray()))
                 .headRowNumber(0)
                 .doReadAllSync();
+    }
+
+    private static String readContractSummarySelect() throws IOException {
+        String resource = "mapper/statistics/CrmStatisticsCustomerMapper.xml";
+        String xml;
+        try (InputStream input = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource)) {
+            assertNotNull(input, resource);
+            xml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        int selectStart = xml.indexOf("<select id=\"selectContractSummary\"");
+        int selectEnd = xml.indexOf("</select>", selectStart);
+        assertTrue(selectStart >= 0 && selectEnd > selectStart);
+        return xml.substring(selectStart, selectEnd);
+    }
+
+    private static String readRepositoryFile(String relativePath) throws IOException {
+        Path directory = Path.of("").toAbsolutePath();
+        while (directory != null) {
+            Path candidate = directory.resolve(relativePath);
+            if (Files.isRegularFile(candidate)) {
+                return Files.readString(candidate, StandardCharsets.UTF_8);
+            }
+            directory = directory.getParent();
+        }
+        throw new IOException("Repository file not found: " + relativePath);
     }
 
     private static void assertFilename(MockHttpServletResponse response) {

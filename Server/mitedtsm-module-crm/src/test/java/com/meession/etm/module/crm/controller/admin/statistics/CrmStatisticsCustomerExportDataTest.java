@@ -90,8 +90,12 @@ class CrmStatisticsCustomerExportDataTest extends BaseDbUnitTest {
 
         LocalDateTime start = LocalDateTime.now().minusDays(1);
         LocalDateTime end = LocalDateTime.now().plusDays(1);
-        assertEquals(1, select(1L, List.of(1L), start, end).size());
-        assertEquals(1, select(2L, List.of(1L), start, end).size());
+        List<CrmStatisticsCustomerContractSummaryRespVO> tenantOneRows = select(1L, List.of(1L), start, end);
+        List<CrmStatisticsCustomerContractSummaryRespVO> tenantTwoRows = select(2L, List.of(1L), start, end);
+        assertEquals(List.of(tenantOneCustomer.getName()),
+                tenantOneRows.stream().map(CrmStatisticsCustomerContractSummaryRespVO::getCustomerName).toList());
+        assertEquals(List.of(tenantTwoCustomer.getName()),
+                tenantTwoRows.stream().map(CrmStatisticsCustomerContractSummaryRespVO::getCustomerName).toList());
         assertEquals(0, select(1L, List.of(100L), start, end).size());
         assertEquals(0, select(1L, List.of(1L), start.minusYears(2), end.minusYears(2)).size());
     }

@@ -36,7 +36,7 @@ BEGIN
              `create_time`, `updater`, `update_time`, `deleted`)
         VALUES
             ('客户转化明细导出', 'crm:statistics-customer:export', 3, 1, parent_menu_id, '', '', '',
-             '', 0, b'1', b'1', b'1', '1', NOW(), '1', NOW(), b'0');
+             '', 0, b'1', b'1', b'1', 'D2-STAT-01', NOW(), 'D2-STAT-01', NOW(), b'0');
     ELSEIF permission_count <> 1 OR permission_parent_id <> parent_menu_id THEN
         SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'D2-STAT-01 migration failed: existing export permission is duplicated or under a wrong parent';
