@@ -54,7 +54,11 @@
       </el-table-column>
       <el-table-column :label="t('crm.business.productUnit')" min-width="80">
         <template #default="{ row }">
-          <dict-tag v-if="row.productUnit !== undefined" :type="DICT_TYPE.CRM_PRODUCT_UNIT" :value="row.productUnit" />
+          <dict-tag
+            v-if="row.productUnit !== undefined"
+            :type="DICT_TYPE.CRM_PRODUCT_UNIT"
+            :value="row.productUnit"
+          />
         </template>
       </el-table-column>
       <el-table-column :label="t('crm.business.productPrice')" min-width="120">
@@ -94,7 +98,12 @@
           </el-form-item>
         </template>
       </el-table-column>
-      <el-table-column :label="t('crm.business.total')" prop="totalPrice" fixed="right" min-width="140">
+      <el-table-column
+        :label="t('crm.business.total')"
+        prop="totalPrice"
+        fixed="right"
+        min-width="140"
+      >
         <template #default="{ row }">
           <el-input disabled v-model="row.totalPrice" :formatter="erpPriceInputFormatter" />
         </template>
@@ -114,10 +123,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import * as BusinessApi from '@/api/crm/business'
 import * as ProductApi from '@/api/crm/product'
 import { erpPriceInputFormatter, erpPriceMultiply } from '@/utils'
 import { DICT_TYPE } from '@/utils/dict'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useMessage } from '@/hooks/web/useMessage'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -129,9 +141,17 @@ const props = withDefaults(
   }>(),
   { products: () => [], disabled: false }
 )
+type BusinessProductFormItem = Omit<
+  BusinessApi.BusinessProductVO,
+  'productId' | 'businessPrice' | 'count'
+> & {
+  productId?: number
+  businessPrice?: number
+  count?: number
+}
 const formLoading = ref(false)
 const productsLoaded = ref(false)
-const formData = ref<BusinessApi.BusinessProductVO[]>([])
+const formData = ref<BusinessProductFormItem[]>([])
 const formRules = reactive({
   productId: [{ required: true, message: t('crm.business.productRequired'), trigger: 'change' }],
   businessPrice: [
@@ -165,18 +185,18 @@ watch(
   { deep: true }
 )
 
-const isHistoricalUnavailable = (row: BusinessApi.BusinessProductVO) => {
+const isHistoricalUnavailable = (row: BusinessProductFormItem) => {
   if (!productsLoaded.value || !row.productId || !row.id) return false
   return !availableProductList.value.some((item) => item.id === row.productId)
 }
 
-const isProductSelected = (productId: number, currentRow: BusinessApi.BusinessProductVO) =>
+const isProductSelected = (productId: number, currentRow: BusinessProductFormItem) =>
   formData.value.some((row) => row !== currentRow && row.productId === productId)
 
 const handleAdd = () => {
   formData.value.push({
-    productId: undefined as unknown as number,
-    businessPrice: undefined as unknown as number,
+    productId: undefined,
+    businessPrice: undefined,
     count: 1
   })
 }
@@ -185,17 +205,17 @@ const handleDelete = (index: number) => {
   formData.value.splice(index, 1)
 }
 
-const clearProductSnapshot = (row: BusinessApi.BusinessProductVO) => {
-  row.productId = undefined as unknown as number
+const clearProductSnapshot = (row: BusinessProductFormItem) => {
+  row.productId = undefined
   row.productName = undefined
   row.productUnit = undefined
   row.productNo = undefined
   row.productPrice = undefined
-  row.businessPrice = undefined as unknown as number
+  row.businessPrice = undefined
   row.totalPrice = undefined
 }
 
-const onChangeProduct = (productId: number | undefined, row: BusinessApi.BusinessProductVO) => {
+const onChangeProduct = (productId: number | undefined, row: BusinessProductFormItem) => {
   if (!productId) {
     clearProductSnapshot(row)
     return

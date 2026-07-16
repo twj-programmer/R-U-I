@@ -36,7 +36,9 @@
         v-if="selectedEndStatus === 2"
         :label="t('crm.business.loseReason')"
         prop="loseReasonCode"
-        :rules="[{ required: true, message: t('crm.business.loseReasonRequired'), trigger: 'change' }]"
+        :rules="[
+          { required: true, message: t('crm.business.loseReasonRequired'), trigger: 'change' }
+        ]"
       >
         <el-select
           v-model="formData.loseReasonCode"
@@ -92,9 +94,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import * as BusinessApi from '@/api/crm/business'
 import * as BusinessStatusApi from '@/api/crm/business/status'
 import { getStrDictOptions } from '@/utils/dict'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useMessage } from '@/hooks/web/useMessage'
 
 interface StatusFormData {
   id?: number

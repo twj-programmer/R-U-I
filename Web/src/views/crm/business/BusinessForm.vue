@@ -150,6 +150,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, reactive, ref, watch } from 'vue'
 import * as BusinessApi from '@/api/crm/business'
 import * as BusinessStatusApi from '@/api/crm/business/status'
 import * as CustomerApi from '@/api/crm/customer'
@@ -157,6 +158,8 @@ import * as UserApi from '@/api/system/user'
 import { useUserStore } from '@/store/modules/user'
 import BusinessProductForm from './components/BusinessProductForm.vue'
 import { erpPriceMultiply, erpPriceInputFormatter } from '@/utils'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useMessage } from '@/hooks/web/useMessage'
 
 interface BusinessFormData {
   id?: number
@@ -229,7 +232,12 @@ watch(
   { deep: true }
 )
 
-const open = async (type: 'create' | 'update', id?: number, customerId?: number, contactId?: number) => {
+const open = async (
+  type: 'create' | 'update',
+  id?: number,
+  customerId?: number,
+  contactId?: number
+) => {
   dialogVisible.value = true
   dialogTitle.value = t('action.' + type)
   formType.value = type

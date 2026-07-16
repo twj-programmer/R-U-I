@@ -144,3 +144,19 @@ pnpm.cmd build:dev
 2. 等待 D2-MKT-01 修正并合入，随后同步最新 `origin/develop`，确认共享字典常量与六个初始字典值，再做输单接口联调。
 3. 由刘焘玮执行 CT-07 交叉测试，覆盖阶段、输单、报价、金额、产品和跟进。
 4. 以上前置未完成前，只能提交本功能分支供复核，不得合入 `develop`，不得宣称完整测试通过。
+
+## 9. 2026-07-16 集成复核补充
+
+- 已同步 `origin/develop@87a5945`；D2-QA-01 与 D2-MKT-01 的合并前置已满足。
+- PR #5 的冲突仅涉及 D2-QA-01 所有的公共 `create_tables.sql`、`clean.sql`。合并时保留 `develop` 版本；D2-BIZ-01 改为使用私有 `d2-business-state-machine-test.sql` 为 H2 测试补充任务字段，不再占用公共测试脚本。
+- 已执行：
+
+  ```powershell
+  cd Server
+  mvn -B -ntp -pl mitedtsm-module-crm -am `
+    '-Dtest=CrmBusinessServiceImplTest,CrmBusinessMapperDbTest,CrmBusinessControllerTest,DictTypeConstantsTest,BusinessLoseReasonMigrationSqlContractTest' `
+    '-Dsurefire.failIfNoSpecifiedTests=false' test
+  ```
+
+- 结果：16 项测试通过，0 失败、0 错误、0 跳过。覆盖控制器路径/权限契约、状态互斥、输单原因、版本冲突、跨租户条件更新、两并发请求单赢家和真实事务回滚。
+- 前端全量 `pnpm ts:check` 使用 8 GB Node 堆执行；商机 API 与本任务的 5 个 Vue 文件均未出现在错误列表中。全仓仍有 7,616 个既有自动导入缺失错误，均在本任务范围外，故全量检查不标记为通过。CT-07 交叉测试仍需按 V1.5 由指定人员独立执行。

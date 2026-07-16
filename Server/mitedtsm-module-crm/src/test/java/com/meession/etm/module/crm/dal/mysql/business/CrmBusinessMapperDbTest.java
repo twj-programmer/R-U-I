@@ -15,6 +15,7 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Import(CrmBusinessMapperDbTest.TenantSqlConfiguration.class)
+@Sql(scripts = "classpath:sql/d2-business-state-machine-test.sql")
 class CrmBusinessMapperDbTest extends BaseDbUnitTest {
 
     private static final Long TENANT_A = 1001L;
@@ -98,9 +100,9 @@ class CrmBusinessMapperDbTest extends BaseDbUnitTest {
 
     private void insertBusiness(Long id, Long tenantId, Integer version, Long statusId) {
         jdbcTemplate.update("INSERT INTO crm_business " +
-                        "(id, name, status_type_id, status_id, version, deleted, tenant_id) " +
-                        "VALUES (?, ?, ?, ?, ?, FALSE, ?)",
-                id, "business-" + id, 10L, statusId, version, tenantId);
+                        "(id, name, customer_id, status_type_id, status_id, version, deleted, tenant_id) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, FALSE, ?)",
+                id, "business-" + id, 1L, 10L, statusId, version, tenantId);
     }
 
     private List<Object> readStageAndVersion(Long id) {
