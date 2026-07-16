@@ -180,7 +180,8 @@
           FROM crm_customer AS customer
                 INNER JOIN crm_contract AS contract ON customer.id = contract.customer_id
                 LEFT JOIN crm_receivable AS receivable ON contract.id = receivable.contract_id
-         WHERE customer.deleted = 0 AND contract.deleted = 0 AND receivable.deleted = 0
+                    AND receivable.deleted = 0
+         WHERE customer.deleted = 0 AND contract.deleted = 0
            AND contract.audit_status = ${@com.meession.etm.module.crm.enums.common.CrmAuditStatusEnum@APPROVE.status}
            AND customer.owner_user_id IN
                 <foreach collection="userIds" item="userId" open="(" close=")" separator=",">
