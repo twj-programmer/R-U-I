@@ -158,5 +158,5 @@ pnpm.cmd build:dev
     '-Dsurefire.failIfNoSpecifiedTests=false' test
   ```
 
-- 结果：16 项测试通过，0 失败、0 错误、0 跳过。覆盖控制器路径/权限契约、状态互斥、输单原因、版本冲突、跨租户条件更新、两并发请求单赢家和真实事务回滚。
+- 结果：17 项测试通过，0 失败、0 错误、0 跳过。`CrmBusinessControllerTest` 通过 MockMvc 覆盖 `PUT /crm/business/update-status` 的正常 HTTP 调用与双填参数拒绝，并断言既有 `crm:business:update` 权限契约；其余测试覆盖输单原因、版本冲突、跨租户条件更新、两并发请求单赢家和真实事务回滚。
 - 前端全量 `pnpm ts:check` 使用 8 GB Node 堆执行；商机 API 与本任务的 5 个 Vue 文件均未出现在错误列表中。全仓仍有 7,616 个既有自动导入缺失错误，均在本任务范围外，故全量检查不标记为通过。CT-07 交叉测试仍需按 V1.5 由指定人员独立执行。
