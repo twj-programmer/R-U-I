@@ -36,8 +36,8 @@ export interface CrmStatisticsCustomerContractSummaryRespVO {
   contractName: string
   totalPrice: number
   receivablePrice: number
-  customerType: string
-  customerSource: string
+  industryId: number | null
+  source: number | null
   ownerUserName: string
   creatorUserName: string
   createTime: Date
@@ -120,6 +120,13 @@ export const StatisticsCustomerApi = {
   getContractSummary: (params: any) => {
     return request.get({
       url: '/crm/statistics-customer/get-contract-summary',
+      params
+    })
+  },
+  // 4.2 导出客户转化明细
+  exportContractSummary: (params: any) => {
+    return request.download({
+      url: '/crm/statistics-customer/export-contract-summary',
       params
     })
   },

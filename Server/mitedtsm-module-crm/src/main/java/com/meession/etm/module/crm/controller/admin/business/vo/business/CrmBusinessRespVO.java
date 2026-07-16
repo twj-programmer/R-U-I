@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.controller.admin.business.vo.business;
 
 import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
@@ -68,8 +69,14 @@ public class CrmBusinessRespVO {
     @ExcelProperty("结束状态")
     private Integer endStatus;
 
+    @Schema(description = "输单原因字典编码")
+    private String loseReasonCode;
+
     @ExcelProperty("结束时的备注")
     private String endRemark;
+
+    @Schema(description = "乐观锁版本号", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Integer version;
 
     @Schema(description = "预计成交日期")
     @ExcelProperty("预计成交日期")
