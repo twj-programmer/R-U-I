@@ -42,8 +42,7 @@ class DictTypeConstantsTest {
     }
 
     @Test
-    void testCrmBusinessLoseReasonMatchesFrontendConstant() {
-        String expectedValue = "crm_business_lose_reason";
-        assertEquals(expectedValue, DictTypeConstants.CRM_BUSINESS_LOSE_REASON);
+    void testCrmBusinessLoseReasonConstantValue() {
+        assertEquals("crm_business_lose_reason", DictTypeConstants.CRM_BUSINESS_LOSE_REASON);
     }
 }
