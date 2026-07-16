@@ -29,18 +29,34 @@ mvn test
 
 ## 3. 测试数据工厂使用方式
 
-各业务任务在自己的测试类中注入 `CrmTestDataFactory`：
+各业务任务在自己的测试类中按以下模板编写：
 
 ```java
-@Resource
-private CrmTestDataFactory testDataFactory;
+import com.meession.etm.framework.test.core.ut.BaseDbUnitTest;
+import com.meession.etm.module.crm.support.CrmTestDataFactory;
+import com.meession.etm.module.crm.support.TenantTestConfiguration;
+import jakarta.annotation.Resource;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 
-@Test
-void testMyFeature() {
-    CrmCustomerDO customer = testDataFactory.createCustomer(1L);
-    // 使用测试数据...
+@Import({CrmTestDataFactory.class, TenantTestConfiguration.class})
+class MyFeatureTest extends BaseDbUnitTest {
+
+    @Resource
+    private CrmTestDataFactory testDataFactory;
+
+    @Test
+    void testMyFeature() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L);
+        // 使用测试数据...
+    }
 }
 ```
+
+**注意事项**：
+- 必须继承 `BaseDbUnitTest`，确保使用 H2 内存数据库和自动清理机制
+- 必须添加 `@Import({CrmTestDataFactory.class, TenantTestConfiguration.class})`，否则无法注入数据工厂和租户拦截器
+- 创建数据时必须传入 `tenantId` 参数，`null` 将抛出 `IllegalArgumentException`
 
 ## 4. 测试隔离机制
 
