@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.customer;
 
-import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
+import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
 
@@ -17,7 +17,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmCustomerPoolConfigDO extends BaseDO {
+public class CrmCustomerPoolConfigDO extends TenantBaseDO {
 
     /**
      * 编号

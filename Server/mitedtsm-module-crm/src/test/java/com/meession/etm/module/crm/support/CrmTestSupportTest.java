@@ -53,6 +53,7 @@ class CrmTestSupportTest extends BaseDbUnitTest {
         int count = 5;
         testDataFactory.createCustomers(1L, count);
         assertEquals(count, testDataFactory.getCustomerCount(1L));
+        assertEquals(0, testDataFactory.getCustomerCount(2L));
     }
 
     @Test
@@ -259,10 +260,57 @@ class CrmTestSupportTest extends BaseDbUnitTest {
     }
 
     @Test
-    void testDataIsolation() {
-        CrmCustomerDO customer1 = testDataFactory.createCustomer(1L, "客户A");
-        CrmCustomerDO customer2 = testDataFactory.createCustomer(2L, "客户B");
-        assertNotEquals(customer1.getId(), customer2.getId());
+    void testTenantIsolation() {
+        testDataFactory.createCustomer(1L, "租户1客户");
+        testDataFactory.createCustomer(1L, "租户1客户2");
+        testDataFactory.createCustomer(2L, "租户2客户");
+
+        assertEquals(2, testDataFactory.getCustomerCount(1L));
+        assertEquals(1, testDataFactory.getCustomerCount(2L));
+        assertEquals(0, testDataFactory.getCustomerCount(3L));
+    }
+
+    @Test
+    void testTenantIsolationAcrossMultipleEntities() {
+        testDataFactory.createCustomer(1L, "租户1客户");
+        testDataFactory.createClue(1L, "租户1线索");
+        testDataFactory.createCustomer(2L, "租户2客户");
+        testDataFactory.createClue(2L, "租户2线索");
+
+        assertEquals(1, testDataFactory.getCustomerCount(1L));
+        assertEquals(1, testDataFactory.getClueCount(1L));
+        assertEquals(1, testDataFactory.getCustomerCount(2L));
+        assertEquals(1, testDataFactory.getClueCount(2L));
+    }
+
+    @Test
+    void testNullTenantId() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(null, "无租户客户");
+        assertNotNull(customer);
+        assertNotNull(customer.getId());
+        assertNotNull(customer.getName());
+    }
+
+    @Test
+    void testEmptyCustomerName() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L, "");
+        assertNotNull(customer);
+        assertEquals("", customer.getName());
+    }
+
+    @Test
+    void testNullCustomerName() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L, null);
+        assertNotNull(customer);
+        assertNotNull(customer.getName());
+        assertTrue(customer.getName().contains("测试客户"));
+    }
+
+    @Test
+    void testEmptyClueName() {
+        CrmClueDO clue = testDataFactory.createClue(1L, "");
+        assertNotNull(clue);
+        assertEquals("", clue.getName());
     }
 
     @Test

@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.product;
 
-import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
+import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -19,7 +19,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmProductCategoryDO extends BaseDO {
+public class CrmProductCategoryDO extends TenantBaseDO {
 
     /**
      * 父分类编号 - 根分类

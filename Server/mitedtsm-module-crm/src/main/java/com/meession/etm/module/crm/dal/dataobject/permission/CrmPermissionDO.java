@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.permission;
 
-import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
+import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
 import com.meession.etm.module.crm.enums.common.CrmBizTypeEnum;
 import com.meession.etm.module.crm.enums.permission.CrmPermissionLevelEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
@@ -21,7 +21,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmPermissionDO extends BaseDO {
+public class CrmPermissionDO extends TenantBaseDO {
 
     /**
      * 编号，主键自增

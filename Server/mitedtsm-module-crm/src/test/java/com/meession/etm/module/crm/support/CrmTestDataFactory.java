@@ -1,5 +1,7 @@
 package com.meession.etm.module.crm.support;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessProductDO;
@@ -40,6 +42,7 @@ import com.meession.etm.module.crm.dal.mysql.receivable.CrmReceivablePlanMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -93,12 +96,38 @@ public class CrmTestDataFactory {
         return ID_GENERATOR.incrementAndGet();
     }
 
-    private void setBaseFields(BaseDO baseDO) {
+    private void setBaseFields(BaseDO baseDO, Long tenantId) {
         LocalDateTime now = LocalDateTime.now();
         baseDO.setCreateTime(now);
         baseDO.setUpdateTime(now);
         baseDO.setCreator(TEST_CREATOR);
         baseDO.setUpdater(TEST_CREATOR);
+        setTenantId(baseDO, tenantId);
+    }
+
+    private void setTenantId(Object obj, Long tenantId) {
+        if (tenantId == null) {
+            return;
+        }
+        try {
+            Field tenantIdField = findField(obj.getClass(), "tenantId");
+            if (tenantIdField != null) {
+                tenantIdField.setAccessible(true);
+                tenantIdField.set(obj, tenantId);
+            }
+        } catch (IllegalAccessException ignored) {
+        }
+    }
+
+    private Field findField(Class<?> clazz, String fieldName) {
+        while (clazz != null) {
+            try {
+                return clazz.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        return null;
     }
 
     public CrmCustomerDO createCustomer(Long tenantId) {
@@ -121,7 +150,7 @@ public class CrmTestDataFactory {
                 .level(1)
                 .source(1)
                 .build();
-        setBaseFields(customer);
+        setBaseFields(customer, tenantId);
         customerMapper.insert(customer);
         return customer;
     }
@@ -159,7 +188,7 @@ public class CrmTestDataFactory {
                 .level(1)
                 .source(1)
                 .build();
-        setBaseFields(clue);
+        setBaseFields(clue, tenantId);
         clueMapper.insert(clue);
         return clue;
     }
@@ -178,7 +207,7 @@ public class CrmTestDataFactory {
                 .name("测试状态组")
                 .deptIds(new java.util.ArrayList<>())
                 .build();
-        setBaseFields(type);
+        setBaseFields(type, tenantId);
         businessStatusTypeMapper.insert(type);
         return type;
     }
@@ -191,7 +220,7 @@ public class CrmTestDataFactory {
                 .percent(20)
                 .sort(1)
                 .build();
-        setBaseFields(status);
+        setBaseFields(status, tenantId);
         businessStatusMapper.insert(status);
         return status;
     }
@@ -218,7 +247,7 @@ public class CrmTestDataFactory {
                 .discountPercent(BigDecimal.valueOf(0))
                 .totalPrice(BigDecimal.valueOf(10000))
                 .build();
-        setBaseFields(business);
+        setBaseFields(business, tenantId);
         businessMapper.insert(business);
         return business;
     }
@@ -251,7 +280,7 @@ public class CrmTestDataFactory {
                 .discountPercent(BigDecimal.valueOf(0))
                 .totalPrice(BigDecimal.valueOf(10000))
                 .build();
-        setBaseFields(contract);
+        setBaseFields(contract, tenantId);
         contractMapper.insert(contract);
         return contract;
     }
@@ -279,7 +308,7 @@ public class CrmTestDataFactory {
                 .returnType(1)
                 .price(BigDecimal.valueOf(5000))
                 .build();
-        setBaseFields(receivable);
+        setBaseFields(receivable, tenantId);
         receivableMapper.insert(receivable);
         return receivable;
     }
@@ -297,7 +326,7 @@ public class CrmTestDataFactory {
                 .master(false)
                 .post("经理")
                 .build();
-        setBaseFields(contact);
+        setBaseFields(contact, tenantId);
         contactMapper.insert(contact);
         return contact;
     }
@@ -311,7 +340,7 @@ public class CrmTestDataFactory {
                 .content("测试跟进内容")
                 .nextTime(LocalDateTime.now().plusDays(7))
                 .build();
-        setBaseFields(record);
+        setBaseFields(record, tenantId);
         followUpRecordMapper.insert(record);
         return record;
     }
@@ -325,7 +354,7 @@ public class CrmTestDataFactory {
                 .notifyEnabled(true)
                 .notifyDays(3)
                 .build();
-        setBaseFields(config);
+        setBaseFields(config, tenantId);
         customerPoolConfigMapper.insert(config);
         return config;
     }
@@ -337,7 +366,7 @@ public class CrmTestDataFactory {
                 .maxCount(100)
                 .dealCountEnabled(false)
                 .build();
-        setBaseFields(config);
+        setBaseFields(config, tenantId);
         customerLimitConfigMapper.insert(config);
         return config;
     }
@@ -348,7 +377,7 @@ public class CrmTestDataFactory {
                 .name("测试分类")
                 .parentId(0L)
                 .build();
-        setBaseFields(category);
+        setBaseFields(category, tenantId);
         productCategoryMapper.insert(category);
         return category;
     }
@@ -364,7 +393,7 @@ public class CrmTestDataFactory {
                 .categoryId(categoryId)
                 .ownerUserId(1L)
                 .build();
-        setBaseFields(product);
+        setBaseFields(product, tenantId);
         productMapper.insert(product);
         return product;
     }
@@ -379,7 +408,7 @@ public class CrmTestDataFactory {
                 .count(BigDecimal.valueOf(10))
                 .totalPrice(BigDecimal.valueOf(900))
                 .build();
-        setBaseFields(bp);
+        setBaseFields(bp, tenantId);
         businessProductMapper.insert(bp);
         return bp;
     }
@@ -394,7 +423,7 @@ public class CrmTestDataFactory {
                 .count(BigDecimal.valueOf(10))
                 .totalPrice(BigDecimal.valueOf(800))
                 .build();
-        setBaseFields(cp);
+        setBaseFields(cp, tenantId);
         contractProductMapper.insert(cp);
         return cp;
     }
@@ -411,7 +440,7 @@ public class CrmTestDataFactory {
                 .price(BigDecimal.valueOf(5000))
                 .remindDays(3)
                 .build();
-        setBaseFields(plan);
+        setBaseFields(plan, tenantId);
         receivablePlanMapper.insert(plan);
         return plan;
     }
@@ -422,7 +451,7 @@ public class CrmTestDataFactory {
                 .contactId(contactId)
                 .businessId(businessId)
                 .build();
-        setBaseFields(cb);
+        setBaseFields(cb, tenantId);
         contactBusinessMapper.insert(cb);
         return cb;
     }
@@ -435,7 +464,7 @@ public class CrmTestDataFactory {
                 .userId(userId)
                 .level(1)
                 .build();
-        setBaseFields(permission);
+        setBaseFields(permission, tenantId);
         permissionMapper.insert(permission);
         return permission;
     }
@@ -462,22 +491,27 @@ public class CrmTestDataFactory {
     }
 
     public long getCustomerCount(Long tenantId) {
-        return customerMapper.selectCount(null);
+        return customerMapper.selectCount(new QueryWrapper<CrmCustomerDO>()
+                .eq("tenant_id", tenantId));
     }
 
     public long getClueCount(Long tenantId) {
-        return clueMapper.selectCount(null);
+        return clueMapper.selectCount(new QueryWrapper<CrmClueDO>()
+                .eq("tenant_id", tenantId));
     }
 
     public long getBusinessCount(Long tenantId) {
-        return businessMapper.selectCount(null);
+        return businessMapper.selectCount(new QueryWrapper<CrmBusinessDO>()
+                .eq("tenant_id", tenantId));
     }
 
     public long getContractCount(Long tenantId) {
-        return contractMapper.selectCount(null);
+        return contractMapper.selectCount(new QueryWrapper<CrmContractDO>()
+                .eq("tenant_id", tenantId));
     }
 
     public long getReceivableCount(Long tenantId) {
-        return receivableMapper.selectCount(null);
+        return receivableMapper.selectCount(new QueryWrapper<CrmReceivableDO>()
+                .eq("tenant_id", tenantId));
     }
 }

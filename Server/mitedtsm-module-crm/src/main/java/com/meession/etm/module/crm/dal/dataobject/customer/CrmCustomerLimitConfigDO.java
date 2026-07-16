@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.customer;
 
-import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
+import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
 import com.meession.etm.framework.mybatis.core.type.LongListTypeHandler;
 import com.meession.etm.module.crm.enums.customer.CrmCustomerLimitConfigTypeEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
@@ -24,7 +24,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmCustomerLimitConfigDO extends BaseDO {
+public class CrmCustomerLimitConfigDO extends TenantBaseDO {
 
     /**
      * 编号

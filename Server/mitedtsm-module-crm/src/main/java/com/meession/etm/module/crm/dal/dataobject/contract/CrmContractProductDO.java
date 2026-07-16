@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.contract;
 
-import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
+import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
 import com.meession.etm.module.crm.dal.dataobject.product.CrmProductDO;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmContractProductDO extends BaseDO {
+public class CrmContractProductDO extends TenantBaseDO {
 
     /**
      * 主键

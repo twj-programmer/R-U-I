@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.business;
 
-import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
+import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
 import com.meession.etm.framework.mybatis.core.type.LongListTypeHandler;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -25,7 +25,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmBusinessStatusTypeDO extends BaseDO {
+public class CrmBusinessStatusTypeDO extends TenantBaseDO {
 
     /**
      * 主键
