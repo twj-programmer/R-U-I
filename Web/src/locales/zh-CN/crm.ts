@@ -90,6 +90,8 @@ export default {
     contractTab: '合同',
     receivableTab: '回款',
     operateLogTab: '操作日志',
+    ownerHistoryTab: '负责人历史',
+    highSeasRecordTab: '公海记录',
     // 确认消息
     updateDealStatusConfirm: '确定更新成交状态为【{status}】吗？',
     updateDealStatusSuccess: '更新成交状态成功',
@@ -102,6 +104,11 @@ export default {
     putPoolConfirm: '确定将客户【{name}】放入公海吗？',
     putPoolSuccess: '客户【{name}】放入公海成功',
     paramError: '参数错误，客户不能为空！',
+    duplicateCheckWarning: '检测到相似客户',
+    strongMatch: '强匹配',
+    suspectMatch: '疑似匹配',
+    matchType: '匹配类型',
+    similarity: '相似度',
     // 配额限制配置
     limitConfig: {
       title: '客户数量限制配置',

@@ -124,7 +124,7 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         normalized = fullWidthToHalfWidth(normalized);
         normalized = normalized.toLowerCase();
         normalized = normalized.replaceAll("\\s+", "");
-        normalized = normalized.replaceAll("[\\p{Punct}\\p{Space}\\p{N}]", "");
+        normalized = normalized.replaceAll("[\\p{Punct}\\p{Space}]", "");
         return normalized;
     }
 

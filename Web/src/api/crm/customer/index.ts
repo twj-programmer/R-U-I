@@ -130,3 +130,83 @@ export const distributeCustomer = async (ids: any[], ownerUserId: number) => {
 export const putCustomerPool = async (id: number) => {
   return await request.put({ url: `/crm/customer/put-pool?id=${id}` })
 }
+
+// ======================= 客户查重 =======================
+
+export interface CustomerDuplicateCheckReqVO {
+  name: string
+  mobile?: string
+  excludeId?: number
+}
+
+export interface CustomerDuplicateItemVO {
+  id: number
+  name: string
+  mobileMasked: string
+  matchType: string
+  similarity: number
+}
+
+export interface CustomerDuplicateCheckRespVO {
+  hasDuplicate: boolean
+  candidates: CustomerDuplicateItemVO[]
+}
+
+// 客户查重
+export const checkCustomerDuplicate = async (data: CustomerDuplicateCheckReqVO) => {
+  return await request.post({ url: `/crm/customer/check-duplicate`, data })
+}
+
+// ======================= 负责人历史 =======================
+
+export interface CustomerOwnerHistoryVO {
+  id: number
+  customerId: number
+  changeType: string
+  changeTypeDesc: string
+  oldOwnerUserId: number
+  oldOwnerUserName: string
+  newOwnerUserId: number
+  newOwnerUserName: string
+  reason: string
+  operatorUserId: number
+  operatorUserName: string
+  changeTime: Date
+}
+
+// 获得客户归属历史分页
+export const getCustomerOwnerHistoryPage = async (params) => {
+  return await request.get({ url: `/crm/customer-owner-history/page`, params })
+}
+
+// 获得客户归属历史列表
+export const getCustomerOwnerHistoryList = async (customerId: number) => {
+  return await request.get({ url: `/crm/customer-owner-history/list`, params: { customerId } })
+}
+
+// ======================= 公海记录 =======================
+
+export interface HighSeasRecordVO {
+  id: number
+  customerId: number
+  actionType: string
+  actionTypeDesc: string
+  beforeOwnerUserId: number
+  beforeOwnerUserName: string
+  afterOwnerUserId: number
+  afterOwnerUserName: string
+  reason: string
+  operatorUserId: number
+  operatorUserName: string
+  actionTime: Date
+}
+
+// 获得公海记录分页
+export const getHighSeasRecordPage = async (params) => {
+  return await request.get({ url: `/crm/high-seas-record/page`, params })
+}
+
+// 获得客户公海记录列表
+export const getHighSeasRecordList = async (customerId: number) => {
+  return await request.get({ url: `/crm/high-seas-record/list-by-customer`, params: { customerId } })
+}

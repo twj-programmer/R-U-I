@@ -13,6 +13,7 @@ import com.meession.etm.module.system.api.user.AdminUserApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +37,9 @@ public class CrmCustomerOwnerHistoryServiceImpl implements CrmCustomerOwnerHisto
 
     @Override
     public PageResult<CrmCustomerOwnerHistoryRespVO> getPage(CrmCustomerOwnerHistoryPageReqVO reqVO) {
+        if (reqVO.getBeginTime() != null && reqVO.getEndTime() != null) {
+            Assert.isTrue(!reqVO.getBeginTime().isAfter(reqVO.getEndTime()), "开始时间不能晚于结束时间");
+        }
         int offset = (reqVO.getPageNo() - 1) * reqVO.getPageSize();
 
         List<CrmCustomerOwnerHistoryDO> list = ownerHistoryMapper.selectPageByCondition(reqVO, offset);

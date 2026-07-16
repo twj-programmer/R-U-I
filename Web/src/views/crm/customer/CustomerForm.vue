@@ -10,7 +10,7 @@
       <el-row>
         <el-col :span="12">
           <el-form-item :label="t('name')" prop="name">
-            <el-input v-model="formData.name" :placeholder="t('namePlaceholder')" />
+            <el-input v-model="formData.name" :placeholder="t('namePlaceholder')" @blur="handleNameBlur" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -137,6 +137,26 @@
           </el-form-item>
         </el-col>
       </el-row>
+      <el-row v-if="duplicateCheckResult?.hasDuplicate" style="margin-top: 10px">
+        <el-col :span="24">
+          <el-alert type="warning" :title="t('duplicateCheckWarning')" show-icon>
+            <template #default>
+              <el-table :data="duplicateCheckResult.candidates" size="small" class="mt-2">
+                <el-table-column :label="t('name')" prop="name" />
+                <el-table-column :label="t('mobile')" prop="mobileMasked" />
+                <el-table-column :label="t('matchType')">
+                  <template #default="{ row }">
+                    <span :class="row.matchType === 'STRONG' ? 'text-red-500' : 'text-orange-500'">
+                      {{ row.matchType === 'STRONG' ? t('strongMatch') : t('suspectMatch') }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column :label="t('similarity')" prop="similarity" />
+              </el-table>
+            </template>
+          </el-alert>
+        </el-col>
+      </el-row>
     </el-form>
     <template #footer>
       <el-button :disabled="formLoading" type="primary" @click="submitForm">{{ t('common.confirm') }}</el-button>
@@ -183,6 +203,24 @@ const formRules = reactive({
   ownerUserId: [{ required: true, message: t('ownerUserRequired'), trigger: 'blur' }]
 })
 const formRef = ref() // 表单 Ref
+const duplicateCheckResult = ref<CustomerApi.CustomerDuplicateCheckRespVO | null>(null) // 查重结果
+
+/** 名称失去焦点时触发查重 */
+const handleNameBlur = async () => {
+  if (!formData.value.name) {
+    duplicateCheckResult.value = null
+    return
+  }
+  try {
+    duplicateCheckResult.value = await CustomerApi.checkCustomerDuplicate({
+      name: formData.value.name,
+      mobile: formData.value.mobile,
+      excludeId: formData.value.id
+    })
+  } catch {
+    duplicateCheckResult.value = null
+  }
+}
 
 /** 打开弹窗 */
 const open = async (type: string, id?: number) => {

@@ -90,6 +90,8 @@ export default {
     contractTab: 'العقود',
     receivableTab: 'المستحقات',
     operateLogTab: 'سجل العمليات',
+    ownerHistoryTab: 'تاريخ المالك',
+    highSeasRecordTab: 'سجل البحر الأعمق',
     // Confirm messages
     updateDealStatusConfirm: 'هل أنت متأكد من تحديث حالة الصفقة إلى [{status}]؟',
     updateDealStatusSuccess: 'تم تحديث حالة الصفقة بنجاح',
