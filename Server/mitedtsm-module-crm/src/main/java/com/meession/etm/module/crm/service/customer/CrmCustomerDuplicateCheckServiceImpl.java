@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,40 +53,8 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         query.neIfPresent(CrmCustomerDO::getId, checkBO.getExcludeId());
         query.eq(CrmCustomerDO::getDeleted, false);
 
-        boolean hasName = normalizedName != null && !normalizedName.isEmpty();
-        boolean hasMobile = normalizedMobile != null && !normalizedMobile.isEmpty();
-
-        List<CrmCustomerDO> candidates = new ArrayList<>();
-
-        if (hasMobile) {
-            query.clear();
-            query.neIfPresent(CrmCustomerDO::getId, checkBO.getExcludeId());
-            query.eq(CrmCustomerDO::getDeleted, false);
-            query.eq(CrmCustomerDO::getMobile, normalizedMobile);
-            candidates.addAll(customerMapper.selectList(query));
-        }
-
-        if (hasName) {
-            query.clear();
-            query.neIfPresent(CrmCustomerDO::getId, checkBO.getExcludeId());
-            query.eq(CrmCustomerDO::getDeleted, false);
-            query.like(CrmCustomerDO::getName, normalizedName.charAt(0));
-            List<CrmCustomerDO> nameCandidates = customerMapper.selectList(query);
-
-            for (CrmCustomerDO candidate : nameCandidates) {
-                String candidateNormalizedName = normalizeName(candidate.getName());
-                if (candidateNormalizedName != null && !candidateNormalizedName.isEmpty()) {
-                    double similarity = calculateLevenshteinSimilarity(normalizedName, candidateNormalizedName);
-                    if (similarity >= SIMILARITY_THRESHOLD) {
-                        if (!candidates.contains(candidate)) {
-                            candidates.add(candidate);
-                        }
-                    }
-                }
-            }
-        }
-
-        return candidates;
+        // 输入值与库内候选值必须使用同一标准化规则比较，避免格式化历史数据被漏检。
+        return customerMapper.selectList(query);
     }
 
     private CrmCustomerDuplicateItemVO buildDuplicateItem(CrmCustomerDO customer, String normalizedName, String normalizedMobile) {
@@ -106,7 +73,7 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         BigDecimal nameSimilarity = BigDecimal.valueOf(rawSimilarity).setScale(2, java.math.RoundingMode.HALF_UP);
         item.setSimilarity(nameSimilarity);
 
-        if (normalizedMobile != null && !normalizedMobile.isEmpty() 
+        if (normalizedMobile != null && !normalizedMobile.isEmpty()
                 && candidateNormalizedMobile != null && candidateNormalizedMobile.equals(normalizedMobile)) {
             item.setMatchType("STRONG");
         } else if (rawSimilarity >= SIMILARITY_THRESHOLD) {

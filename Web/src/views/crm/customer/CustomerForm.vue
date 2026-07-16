@@ -29,7 +29,7 @@
       <el-row>
         <el-col :span="12">
           <el-form-item :label="t('mobile')" prop="mobile">
-            <el-input v-model="formData.mobile" :placeholder="t('mobilePlaceholder')" />
+            <el-input v-model="formData.mobile" :placeholder="t('mobilePlaceholder')" @blur="handleNameBlur" />
           </el-form-item>
         </el-col>
         <el-col :span="12">

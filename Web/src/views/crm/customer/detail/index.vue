@@ -78,12 +78,6 @@
       <el-tab-pane :label="t('operateLogTab')">
         <OperateLogV2 :log-list="logList" />
       </el-tab-pane>
-      <el-tab-pane v-hasPermi="['crm:customer-owner-history:query']" :label="t('ownerHistoryTab')" lazy>
-        <CustomerOwnerHistoryList :customer-id="customerId" />
-      </el-tab-pane>
-      <el-tab-pane v-hasPermi="['crm:high-seas-record:query']" :label="t('highSeasRecordTab')" lazy>
-        <CustomerHighSeasRecordList :customer-id="customerId" />
-      </el-tab-pane>
     </el-tabs>
   </el-col>
 
@@ -98,8 +92,6 @@ import * as CustomerApi from '@/api/crm/customer'
 import CustomerForm from '@/views/crm/customer/CustomerForm.vue'
 import CustomerDetailsInfo from './CustomerDetailsInfo.vue' // 客户明细 - 详细信息
 import CustomerDetailsHeader from './CustomerDetailsHeader.vue' // 客户明细 - 头部
-import CustomerOwnerHistoryList from './CustomerOwnerHistoryList.vue' // 客户归属历史
-import CustomerHighSeasRecordList from './CustomerHighSeasRecordList.vue' // 公海记录
 import ContactList from '@/views/crm/contact/components/ContactList.vue' // 联系人列表
 import ContractList from '@/views/crm/contract/components/ContractList.vue' // 合同列表
 import BusinessList from '@/views/crm/business/components/BusinessList.vue' // 商机列表

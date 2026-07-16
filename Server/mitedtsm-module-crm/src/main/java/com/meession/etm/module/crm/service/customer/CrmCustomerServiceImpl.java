@@ -22,19 +22,15 @@ import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerPoolConfig
 import com.meession.etm.module.crm.dal.mysql.customer.CrmCustomerMapper;
 import com.meession.etm.module.crm.enums.common.CrmBizTypeEnum;
 import com.meession.etm.module.crm.enums.common.CrmSceneTypeEnum;
-import com.meession.etm.module.crm.enums.customer.OwnerChangeTypeEnum;
 import com.meession.etm.module.crm.enums.permission.CrmPermissionLevelEnum;
 import com.meession.etm.module.crm.framework.permission.core.annotations.CrmPermission;
 import com.meession.etm.module.crm.service.business.CrmBusinessService;
 import com.meession.etm.module.crm.service.contact.CrmContactService;
 import com.meession.etm.module.crm.service.contract.CrmContractService;
 import com.meession.etm.module.crm.service.customer.bo.CrmCustomerCreateReqBO;
-import com.meession.etm.module.crm.service.customer.bo.CrmHighSeasRecordCreateBO;
-import com.meession.etm.module.crm.service.customer.event.CrmCustomerOwnerChangedEvent;
 import com.meession.etm.module.crm.service.permission.CrmPermissionService;
 import com.meession.etm.module.crm.service.permission.bo.CrmPermissionCreateReqBO;
 import com.meession.etm.module.crm.service.permission.bo.CrmPermissionTransferReqBO;
-import com.meession.etm.framework.security.core.util.SecurityFrameworkUtils;
 import com.meession.etm.module.system.api.user.AdminUserApi;
 import com.meession.etm.module.system.api.user.dto.AdminUserRespDTO;
 import com.mzt.logapi.context.LogRecordContext;
@@ -42,7 +38,6 @@ import com.mzt.logapi.service.impl.DiffParseFunction;
 import com.mzt.logapi.starter.annotation.LogRecord;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,17 +86,6 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
 
     @Resource
     private AdminUserApi adminUserApi;
-
-    @Resource
-    private ApplicationEventPublisher eventPublisher;
-
-    @Resource
-    @Lazy
-    private CrmHighSeasRecordService highSeasRecordService;
-
-    @Resource
-    @Lazy
-    private CrmCustomerOwnerHistoryService ownerHistoryService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -222,9 +206,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
     public void transferCustomer(CrmCustomerTransferReqVO reqVO, Long userId) {
         // 1.1 校验客户是否存在
         CrmCustomerDO customer = validateCustomerExists(reqVO.getId());
-        // 1.2 记录旧负责人
-        Long beforeOwnerUserId = customer.getOwnerUserId();
-        // 1.3 校验拥有客户是否到达上限
+        // 1.2 校验拥有客户是否到达上限
         validateCustomerExceedOwnerLimit(reqVO.getNewOwnerUserId(), 1);
         // 2.1 数据权限转移
         permissionService.transferPermission(new CrmPermissionTransferReqBO(userId, CrmBizTypeEnum.CRM_CUSTOMER.getType(),
@@ -233,11 +215,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         customerMapper.updateById(new CrmCustomerDO().setId(reqVO.getId())
                 .setOwnerUserId(reqVO.getNewOwnerUserId()).setOwnerTime(LocalDateTime.now()));
 
-        // 2.3 发布负责人变更事件（转移只写负责人历史，不写公海记录）
-        eventPublisher.publishEvent(new CrmCustomerOwnerChangedEvent(this, customer.getId(), beforeOwnerUserId,
-                reqVO.getNewOwnerUserId(), OwnerChangeTypeEnum.TRANSFER.getType(), "客户转移", userId));
-
-        // 2.4 同时转移
+        // 2.3 同时转移
         if (CollUtil.isNotEmpty(reqVO.getToBizTypes())) {
             transfer(reqVO, userId);
         }
@@ -397,14 +375,8 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         // 1.3. 校验客户是否锁定
         validateCustomerIsLocked(customer, true);
 
-        // 2. 获取当前登录用户（手动操作）
-        Long operatorUserId = SecurityFrameworkUtils.getLoginUserId();
-        if (operatorUserId == null) {
-            operatorUserId = 0L;
-        }
-
-        // 3. 客户放入公海（内部方法会发布负责人变更事件）
-        putCustomerPool(customer, operatorUserId, true);
+        // 2. 客户放入公海
+        putCustomerPool(customer);
 
         // 记录操作日志上下文
         LogRecordContext.putVariable("customerName", customer.getName());
@@ -443,22 +415,11 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
             createPermissions.add(new CrmPermissionCreateReqBO().setBizType(CrmBizTypeEnum.CRM_CUSTOMER.getType())
                     .setBizId(customer.getId()).setUserId(ownerUserId).setLevel(CrmPermissionLevelEnum.OWNER.getLevel()));
         });
-        // 2.3 更新客户负责人
+        // 2.2 更新客户负责人
         customerMapper.updateBatch(updateCustomers);
-        // 2.4 创建负责人数据权限
+        // 2.3 创建负责人数据权限
         permissionService.createPermissionBatch(createPermissions);
         // TODO @芋艿：要不要处理关联的联系人？？？
-
-        // 2.5 发布负责人变更事件并写入公海记录
-        String changeType = isReceive ? OwnerChangeTypeEnum.RECEIVE.getType() : OwnerChangeTypeEnum.ASSIGN.getType();
-        String reason = isReceive ? "领取公海客户" : "分配客户";
-        customers.forEach(customer -> {
-            eventPublisher.publishEvent(new CrmCustomerOwnerChangedEvent(this, customer.getId(), null,
-                    ownerUserId, changeType, reason, ownerUserId));
-            if (isReceive) {
-                createHighSeasRecord(customer.getId(), null, ownerUserId, changeType, reason, ownerUserId);
-            }
-        });
 
         // 3. 记录操作日志
         AdminUserRespDTO user = null;
@@ -478,11 +439,11 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         }
         // 1. 获得需要放到的客户列表
         List<CrmCustomerDO> customerList = customerMapper.selectListByAutoPool(poolConfig);
-        // 2. 逐个放入公海（内部方法会发布负责人变更事件），自动操作operatorUserId为0
+        // 2. 逐个放入公海
         int count = 0;
         for (CrmCustomerDO customer : customerList) {
             try {
-                getSelf().putCustomerPool(customer, 0L, false);
+                getSelf().putCustomerPool(customer);
                 count++;
             } catch (Throwable e) {
                 log.error("[autoPutCustomerPool][客户({}) 放入公海异常]", customer.getId(), e);
@@ -492,44 +453,20 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
     }
 
     @Transactional(rollbackFor = Exception.class) // 需要 protected 修饰，因为需要在事务中调用
-    protected void putCustomerPool(CrmCustomerDO customer, Long operatorUserId, boolean isManual) {
-        // 1. 记录旧负责人（放入公海前）
-        Long beforeOwnerUserId = customer.getOwnerUserId();
-
-        // 2. 设置负责人为 NULL
+    protected void putCustomerPool(CrmCustomerDO customer) {
+        // 1. 设置负责人为 NULL
         int updateOwnerUserIncr = customerMapper.updateOwnerUserIdById(customer.getId(), null);
         if (updateOwnerUserIncr == 0) {
             throw exception(CUSTOMER_UPDATE_OWNER_USER_FAIL);
         }
 
-        // 3. 联系人的负责人，也要设置为 null。因为：因为领取后，负责人也要关联过来，这块和 receiveCustomer 是对应的
+        // 2. 联系人的负责人，也要设置为 null。因为：因为领取后，负责人也要关联过来，这块和 receiveCustomer 是对应的
         contactService.updateOwnerUserIdByCustomerId(customer.getId(), null);
 
-        // 4. 删除负责人数据权限
+        // 3. 删除负责人数据权限
         // 注意：需要放在 contactService 后面，不然【客户】数据权限已经被删除，无法操作！
         permissionService.deletePermission(CrmBizTypeEnum.CRM_CUSTOMER.getType(), customer.getId(),
                 CrmPermissionLevelEnum.OWNER.getLevel());
-
-        // 5. 发布负责人变更事件并写入公海记录
-        String changeType = isManual ? OwnerChangeTypeEnum.MANUAL_PUT.getType() : OwnerChangeTypeEnum.AUTO_PUT.getType();
-        String reason = isManual ? "手动移入公海" : "系统自动移入公海";
-        eventPublisher.publishEvent(new CrmCustomerOwnerChangedEvent(this, customer.getId(), beforeOwnerUserId,
-                null, changeType, reason, operatorUserId));
-
-        // 6. 写入公海记录
-        createHighSeasRecord(customer.getId(), beforeOwnerUserId, null, changeType, reason, operatorUserId);
-    }
-
-    private void createHighSeasRecord(Long customerId, Long beforeOwnerUserId, Long afterOwnerUserId,
-                                       String actionType, String reason, Long operatorUserId) {
-        CrmHighSeasRecordCreateBO createBO = new CrmHighSeasRecordCreateBO();
-        createBO.setCustomerId(customerId);
-        createBO.setBeforeOwnerUserId(beforeOwnerUserId);
-        createBO.setAfterOwnerUserId(afterOwnerUserId);
-        createBO.setActionType(actionType);
-        createBO.setReason(reason);
-        createBO.setOperatorUserId(operatorUserId);
-        highSeasRecordService.createRecord(createBO);
     }
 
     @LogRecord(type = CRM_CUSTOMER_TYPE, subType = CRM_CUSTOMER_RECEIVE_SUB_TYPE, bizNo = "{{#customer.id}}",

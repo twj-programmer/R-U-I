@@ -90,8 +90,6 @@ export default {
     contractTab: '合同',
     receivableTab: '回款',
     operateLogTab: '操作日志',
-    ownerHistoryTab: '负责人历史',
-    highSeasRecordTab: '公海记录',
     // 确认消息
     updateDealStatusConfirm: '确定更新成交状态为【{status}】吗？',
     updateDealStatusSuccess: '更新成交状态成功',

@@ -90,8 +90,6 @@ export default {
     contractTab: 'Contracts',
     receivableTab: 'Receivables',
     operateLogTab: 'Operation Log',
-    ownerHistoryTab: 'Owner History',
-    highSeasRecordTab: 'High Seas Record',
     // Confirm messages
     updateDealStatusConfirm: 'Are you sure to update deal status to [{status}]?',
     updateDealStatusSuccess: 'Update deal status successfully',
