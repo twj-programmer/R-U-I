@@ -1,11 +1,15 @@
 package com.meession.etm.module.crm.controller.admin.statistics;
 
+import com.meession.etm.framework.apilog.core.annotation.ApiAccessLog;
 import com.meession.etm.framework.common.pojo.CommonResult;
+import com.meession.etm.framework.common.util.object.BeanUtils;
+import com.meession.etm.framework.excel.core.util.ExcelUtils;
 import com.meession.etm.module.crm.controller.admin.statistics.vo.customer.*;
 import com.meession.etm.module.crm.service.statistics.CrmStatisticsCustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -13,8 +17,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import static com.meession.etm.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
 import static com.meession.etm.framework.common.pojo.CommonResult.success;
 
 @Tag(name = "管理后台 - CRM 客户统计")
@@ -66,6 +74,20 @@ public class CrmStatisticsCustomerController {
     @PreAuthorize("@ss.hasPermission('crm:statistics-customer:query')")
     public CommonResult<List<CrmStatisticsCustomerContractSummaryRespVO>> getContractSummary(@Valid CrmStatisticsCustomerReqVO reqVO) {
         return success(customerService.getContractSummary(reqVO));
+    }
+
+    @GetMapping("/export-contract-summary")
+    @Operation(summary = "导出客户转化明细")
+    @PreAuthorize("@ss.hasPermission('crm:statistics-customer:export')")
+    @ApiAccessLog(operateType = EXPORT)
+    public void exportContractSummary(@Valid CrmStatisticsCustomerReqVO reqVO,
+                                      HttpServletResponse response) throws IOException {
+        List<CrmStatisticsCustomerContractSummaryRespVO> summaryList = customerService.getContractSummary(reqVO);
+        String fileName = "客户转化明细_" + LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".xlsx";
+        ExcelUtils.write(response, fileName, "客户转化明细",
+                CrmStatisticsCustomerContractSummaryExportVO.class,
+                BeanUtils.toBean(summaryList, CrmStatisticsCustomerContractSummaryExportVO.class));
     }
 
     @GetMapping("/get-pool-summary-by-date")
