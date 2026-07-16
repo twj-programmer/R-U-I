@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.business;
 
-import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
+import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerDO;
 import com.meession.etm.module.crm.enums.business.CrmBusinessEndStatusEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmBusinessDO extends TenantBaseDO {
+public class CrmBusinessDO extends BaseDO {
 
     /**
      * 编号

@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.business;
 
-import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
+import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -20,7 +20,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmBusinessStatusDO extends TenantBaseDO {
+public class CrmBusinessStatusDO extends BaseDO {
 
     /**
      * 主键

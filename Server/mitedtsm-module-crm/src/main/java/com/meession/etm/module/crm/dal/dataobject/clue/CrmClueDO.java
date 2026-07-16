@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.clue;
 
-import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
+import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerDO;
 import com.meession.etm.module.crm.enums.DictTypeConstants;
 import com.baomidou.mybatisplus.annotation.KeySequence;
@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmClueDO extends TenantBaseDO {
+public class CrmClueDO extends BaseDO {
 
     /**
      * 编号，主键自增

@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.followup;
 
-import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
+import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.framework.mybatis.core.type.LongListTypeHandler;
 import com.meession.etm.framework.mybatis.core.type.StringListTypeHandler;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
@@ -31,7 +31,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmFollowUpRecordDO extends TenantBaseDO {
+public class CrmFollowUpRecordDO extends BaseDO {
 
     /**
      * 编号

@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.contract;
 
-import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
+import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
 
@@ -12,7 +12,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmContractConfigDO extends TenantBaseDO {
+public class CrmContractConfigDO extends BaseDO {
 
     /**
      * 编号

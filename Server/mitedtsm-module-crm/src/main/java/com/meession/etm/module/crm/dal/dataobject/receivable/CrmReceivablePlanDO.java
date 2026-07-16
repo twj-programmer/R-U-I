@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.receivable;
 
-import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
+import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.module.crm.dal.dataobject.contract.CrmContractDO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerDO;
 import com.meession.etm.module.crm.enums.receivable.CrmReceivableReturnTypeEnum;
@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmReceivablePlanDO extends TenantBaseDO {
+public class CrmReceivablePlanDO extends BaseDO {
 
     /**
      * 编号

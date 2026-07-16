@@ -1,8 +1,7 @@
 package com.meession.etm.module.crm.support;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
+import com.meession.etm.framework.tenant.core.util.TenantUtils;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessProductDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessStatusDO;
@@ -42,7 +41,6 @@ import com.meession.etm.module.crm.dal.mysql.receivable.CrmReceivablePlanMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -52,6 +50,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class CrmTestDataFactory {
 
+    @Resource
+    private CrmTestMapper testMapper;
     @Resource
     private CrmCustomerMapper customerMapper;
     @Resource
@@ -96,38 +96,18 @@ public class CrmTestDataFactory {
         return ID_GENERATOR.incrementAndGet();
     }
 
-    private void setBaseFields(BaseDO baseDO, Long tenantId) {
+    private void validateTenantId(Long tenantId) {
+        if (tenantId == null) {
+            throw new IllegalArgumentException("tenantId cannot be null");
+        }
+    }
+
+    private void setBaseFields(BaseDO baseDO) {
         LocalDateTime now = LocalDateTime.now();
         baseDO.setCreateTime(now);
         baseDO.setUpdateTime(now);
         baseDO.setCreator(TEST_CREATOR);
         baseDO.setUpdater(TEST_CREATOR);
-        setTenantId(baseDO, tenantId);
-    }
-
-    private void setTenantId(Object obj, Long tenantId) {
-        if (tenantId == null) {
-            return;
-        }
-        try {
-            Field tenantIdField = findField(obj.getClass(), "tenantId");
-            if (tenantIdField != null) {
-                tenantIdField.setAccessible(true);
-                tenantIdField.set(obj, tenantId);
-            }
-        } catch (IllegalAccessException ignored) {
-        }
-    }
-
-    private Field findField(Class<?> clazz, String fieldName) {
-        while (clazz != null) {
-            try {
-                return clazz.getDeclaredField(fieldName);
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
-        }
-        return null;
     }
 
     public CrmCustomerDO createCustomer(Long tenantId) {
@@ -135,34 +115,30 @@ public class CrmTestDataFactory {
     }
 
     public CrmCustomerDO createCustomer(Long tenantId, String name) {
-        CrmCustomerDO customer = CrmCustomerDO.builder()
-                .id(nextId())
-                .name(name != null ? name : "测试客户" + System.currentTimeMillis())
-                .followUpStatus(false)
-                .ownerUserId(1L)
-                .ownerTime(LocalDateTime.now())
-                .lockStatus(false)
-                .dealStatus(false)
-                .mobile("13800138000")
-                .telephone("021-88888888")
-                .email("test@example.com")
-                .industryId(1)
-                .level(1)
-                .source(1)
-                .build();
-        setBaseFields(customer, tenantId);
-        customerMapper.insert(customer);
-        return customer;
+        validateTenantId(tenantId);
+        Long id = nextId();
+        String customerName = name != null ? name : "测试客户" + System.currentTimeMillis();
+        LocalDateTime now = LocalDateTime.now();
+        return TenantUtils.execute(tenantId, () -> {
+            testMapper.insertCustomer(id, customerName, false, 1L, now, false, false,
+                    "13800138000", "021-88888888", "test@example.com", 1, 1, 1,
+                    TEST_CREATOR, now, TEST_CREATOR, now, false, tenantId);
+            return customerMapper.selectById(id);
+        });
     }
 
     public CrmCustomerDO createCustomerInPool(Long tenantId) {
+        validateTenantId(tenantId);
         CrmCustomerDO customer = createCustomer(tenantId);
-        customer.setOwnerUserId(null);
-        customerMapper.updateById(customer);
-        return customer;
+        return TenantUtils.execute(tenantId, () -> {
+            customer.setOwnerUserId(null);
+            customerMapper.updateById(customer);
+            return customer;
+        });
     }
 
     public List<CrmCustomerDO> createCustomers(Long tenantId, int count) {
+        validateTenantId(tenantId);
         List<CrmCustomerDO> customers = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             customers.add(createCustomer(tenantId, "测试客户" + i));
@@ -175,44 +151,45 @@ public class CrmTestDataFactory {
     }
 
     public CrmClueDO createClue(Long tenantId, String name) {
-        CrmClueDO clue = CrmClueDO.builder()
-                .id(nextId())
-                .name(name != null ? name : "测试线索" + System.currentTimeMillis())
-                .followUpStatus(false)
-                .ownerUserId(1L)
-                .transformStatus(false)
-                .mobile("13900139000")
-                .telephone("021-99999999")
-                .email("clue@example.com")
-                .industryId(1)
-                .level(1)
-                .source(1)
-                .build();
-        setBaseFields(clue, tenantId);
-        clueMapper.insert(clue);
-        return clue;
+        validateTenantId(tenantId);
+        Long id = nextId();
+        String clueName = name != null ? name : "测试线索" + System.currentTimeMillis();
+        LocalDateTime now = LocalDateTime.now();
+        return TenantUtils.execute(tenantId, () -> {
+            testMapper.insertClue(id, clueName, false, 1L, false,
+                    "13900139000", "021-99999999", "clue@example.com", 1, 1, 1,
+                    TEST_CREATOR, now, TEST_CREATOR, now, false, tenantId);
+            return clueMapper.selectById(id);
+        });
     }
 
     public CrmClueDO createClueWithCustomer(Long tenantId, Long customerId) {
+        validateTenantId(tenantId);
         CrmClueDO clue = createClue(tenantId);
-        clue.setTransformStatus(true);
-        clue.setCustomerId(customerId);
-        clueMapper.updateById(clue);
-        return clue;
+        return TenantUtils.execute(tenantId, () -> {
+            clue.setTransformStatus(true);
+            clue.setCustomerId(customerId);
+            clueMapper.updateById(clue);
+            return clue;
+        });
     }
 
     public CrmBusinessStatusTypeDO createBusinessStatusType(Long tenantId) {
+        validateTenantId(tenantId);
         CrmBusinessStatusTypeDO type = CrmBusinessStatusTypeDO.builder()
                 .id(nextId())
                 .name("测试状态组")
                 .deptIds(new java.util.ArrayList<>())
                 .build();
-        setBaseFields(type, tenantId);
-        businessStatusTypeMapper.insert(type);
-        return type;
+        setBaseFields(type);
+        return TenantUtils.execute(tenantId, () -> {
+            businessStatusTypeMapper.insert(type);
+            return type;
+        });
     }
 
     public CrmBusinessStatusDO createBusinessStatus(Long tenantId, Long typeId) {
+        validateTenantId(tenantId);
         CrmBusinessStatusDO status = CrmBusinessStatusDO.builder()
                 .id(nextId())
                 .typeId(typeId)
@@ -220,9 +197,11 @@ public class CrmTestDataFactory {
                 .percent(20)
                 .sort(1)
                 .build();
-        setBaseFields(status, tenantId);
-        businessStatusMapper.insert(status);
-        return status;
+        setBaseFields(status);
+        return TenantUtils.execute(tenantId, () -> {
+            businessStatusMapper.insert(status);
+            return status;
+        });
     }
 
     public CrmBusinessDO createBusiness(Long tenantId, Long customerId) {
@@ -230,6 +209,7 @@ public class CrmTestDataFactory {
     }
 
     public CrmBusinessDO createBusiness(Long tenantId, Long customerId, Integer endStatus) {
+        validateTenantId(tenantId);
         CrmBusinessStatusTypeDO type = createBusinessStatusType(tenantId);
         CrmBusinessStatusDO status = createBusinessStatus(tenantId, type.getId());
 
@@ -247,20 +227,26 @@ public class CrmTestDataFactory {
                 .discountPercent(BigDecimal.valueOf(0))
                 .totalPrice(BigDecimal.valueOf(10000))
                 .build();
-        setBaseFields(business, tenantId);
-        businessMapper.insert(business);
-        return business;
+        setBaseFields(business);
+        return TenantUtils.execute(tenantId, () -> {
+            businessMapper.insert(business);
+            return business;
+        });
     }
 
     public CrmBusinessDO createWinBusiness(Long tenantId, Long customerId) {
+        validateTenantId(tenantId);
         return createBusiness(tenantId, customerId, 1);
     }
 
     public CrmBusinessDO createLoseBusiness(Long tenantId, Long customerId) {
+        validateTenantId(tenantId);
         CrmBusinessDO business = createBusiness(tenantId, customerId, 2);
-        business.setEndRemark("输单原因测试");
-        businessMapper.updateById(business);
-        return business;
+        return TenantUtils.execute(tenantId, () -> {
+            business.setEndRemark("输单原因测试");
+            businessMapper.updateById(business);
+            return business;
+        });
     }
 
     public CrmContractDO createContract(Long tenantId, Long customerId, Long businessId) {
@@ -268,6 +254,7 @@ public class CrmTestDataFactory {
     }
 
     public CrmContractDO createContract(Long tenantId, Long customerId, Long businessId, Integer auditStatus) {
+        validateTenantId(tenantId);
         CrmContractDO contract = CrmContractDO.builder()
                 .id(nextId())
                 .name("测试合同" + System.currentTimeMillis())
@@ -280,16 +267,21 @@ public class CrmTestDataFactory {
                 .discountPercent(BigDecimal.valueOf(0))
                 .totalPrice(BigDecimal.valueOf(10000))
                 .build();
-        setBaseFields(contract, tenantId);
-        contractMapper.insert(contract);
-        return contract;
+        setBaseFields(contract);
+        return TenantUtils.execute(tenantId, () -> {
+            contractMapper.insert(contract);
+            return contract;
+        });
     }
 
     public CrmContractDO createContractWithProcess(Long tenantId, Long customerId, Long businessId) {
+        validateTenantId(tenantId);
         CrmContractDO contract = createContract(tenantId, customerId, businessId, 10);
-        contract.setProcessInstanceId("test-process-id-" + System.currentTimeMillis());
-        contractMapper.updateById(contract);
-        return contract;
+        return TenantUtils.execute(tenantId, () -> {
+            contract.setProcessInstanceId("test-process-id-" + System.currentTimeMillis());
+            contractMapper.updateById(contract);
+            return contract;
+        });
     }
 
     public CrmReceivableDO createReceivable(Long tenantId, Long contractId, Long customerId) {
@@ -297,6 +289,7 @@ public class CrmTestDataFactory {
     }
 
     public CrmReceivableDO createReceivable(Long tenantId, Long contractId, Long customerId, Integer auditStatus) {
+        validateTenantId(tenantId);
         CrmReceivableDO receivable = CrmReceivableDO.builder()
                 .id(nextId())
                 .no("HK" + System.currentTimeMillis())
@@ -308,12 +301,15 @@ public class CrmTestDataFactory {
                 .returnType(1)
                 .price(BigDecimal.valueOf(5000))
                 .build();
-        setBaseFields(receivable, tenantId);
-        receivableMapper.insert(receivable);
-        return receivable;
+        setBaseFields(receivable);
+        return TenantUtils.execute(tenantId, () -> {
+            receivableMapper.insert(receivable);
+            return receivable;
+        });
     }
 
     public CrmContactDO createContact(Long tenantId, Long customerId) {
+        validateTenantId(tenantId);
         CrmContactDO contact = CrmContactDO.builder()
                 .id(nextId())
                 .name("测试联系人" + System.currentTimeMillis())
@@ -326,12 +322,15 @@ public class CrmTestDataFactory {
                 .master(false)
                 .post("经理")
                 .build();
-        setBaseFields(contact, tenantId);
-        contactMapper.insert(contact);
-        return contact;
+        setBaseFields(contact);
+        return TenantUtils.execute(tenantId, () -> {
+            contactMapper.insert(contact);
+            return contact;
+        });
     }
 
     public CrmFollowUpRecordDO createFollowUpRecord(Long tenantId, Integer bizType, Long bizId) {
+        validateTenantId(tenantId);
         CrmFollowUpRecordDO record = CrmFollowUpRecordDO.builder()
                 .id(nextId())
                 .bizType(bizType)
@@ -340,12 +339,15 @@ public class CrmTestDataFactory {
                 .content("测试跟进内容")
                 .nextTime(LocalDateTime.now().plusDays(7))
                 .build();
-        setBaseFields(record, tenantId);
-        followUpRecordMapper.insert(record);
-        return record;
+        setBaseFields(record);
+        return TenantUtils.execute(tenantId, () -> {
+            followUpRecordMapper.insert(record);
+            return record;
+        });
     }
 
     public CrmCustomerPoolConfigDO createCustomerPoolConfig(Long tenantId) {
+        validateTenantId(tenantId);
         CrmCustomerPoolConfigDO config = CrmCustomerPoolConfigDO.builder()
                 .id(nextId())
                 .enabled(true)
@@ -354,35 +356,44 @@ public class CrmTestDataFactory {
                 .notifyEnabled(true)
                 .notifyDays(3)
                 .build();
-        setBaseFields(config, tenantId);
-        customerPoolConfigMapper.insert(config);
-        return config;
+        setBaseFields(config);
+        return TenantUtils.execute(tenantId, () -> {
+            customerPoolConfigMapper.insert(config);
+            return config;
+        });
     }
 
     public CrmCustomerLimitConfigDO createCustomerLimitConfig(Long tenantId) {
+        validateTenantId(tenantId);
         CrmCustomerLimitConfigDO config = CrmCustomerLimitConfigDO.builder()
                 .id(nextId())
                 .type(1)
                 .maxCount(100)
                 .dealCountEnabled(false)
                 .build();
-        setBaseFields(config, tenantId);
-        customerLimitConfigMapper.insert(config);
-        return config;
+        setBaseFields(config);
+        return TenantUtils.execute(tenantId, () -> {
+            customerLimitConfigMapper.insert(config);
+            return config;
+        });
     }
 
     public CrmProductCategoryDO createProductCategory(Long tenantId) {
+        validateTenantId(tenantId);
         CrmProductCategoryDO category = CrmProductCategoryDO.builder()
                 .id(nextId())
                 .name("测试分类")
                 .parentId(0L)
                 .build();
-        setBaseFields(category, tenantId);
-        productCategoryMapper.insert(category);
-        return category;
+        setBaseFields(category);
+        return TenantUtils.execute(tenantId, () -> {
+            productCategoryMapper.insert(category);
+            return category;
+        });
     }
 
     public CrmProductDO createProduct(Long tenantId, Long categoryId) {
+        validateTenantId(tenantId);
         CrmProductDO product = CrmProductDO.builder()
                 .id(nextId())
                 .name("测试产品" + System.currentTimeMillis())
@@ -393,12 +404,15 @@ public class CrmTestDataFactory {
                 .categoryId(categoryId)
                 .ownerUserId(1L)
                 .build();
-        setBaseFields(product, tenantId);
-        productMapper.insert(product);
-        return product;
+        setBaseFields(product);
+        return TenantUtils.execute(tenantId, () -> {
+            productMapper.insert(product);
+            return product;
+        });
     }
 
     public CrmBusinessProductDO createBusinessProduct(Long tenantId, Long businessId, Long productId) {
+        validateTenantId(tenantId);
         CrmBusinessProductDO bp = CrmBusinessProductDO.builder()
                 .id(nextId())
                 .businessId(businessId)
@@ -408,12 +422,15 @@ public class CrmTestDataFactory {
                 .count(BigDecimal.valueOf(10))
                 .totalPrice(BigDecimal.valueOf(900))
                 .build();
-        setBaseFields(bp, tenantId);
-        businessProductMapper.insert(bp);
-        return bp;
+        setBaseFields(bp);
+        return TenantUtils.execute(tenantId, () -> {
+            businessProductMapper.insert(bp);
+            return bp;
+        });
     }
 
     public CrmContractProductDO createContractProduct(Long tenantId, Long contractId, Long productId) {
+        validateTenantId(tenantId);
         CrmContractProductDO cp = CrmContractProductDO.builder()
                 .id(nextId())
                 .contractId(contractId)
@@ -423,12 +440,15 @@ public class CrmTestDataFactory {
                 .count(BigDecimal.valueOf(10))
                 .totalPrice(BigDecimal.valueOf(800))
                 .build();
-        setBaseFields(cp, tenantId);
-        contractProductMapper.insert(cp);
-        return cp;
+        setBaseFields(cp);
+        return TenantUtils.execute(tenantId, () -> {
+            contractProductMapper.insert(cp);
+            return cp;
+        });
     }
 
     public CrmReceivablePlanDO createReceivablePlan(Long tenantId, Long contractId, Long customerId) {
+        validateTenantId(tenantId);
         CrmReceivablePlanDO plan = CrmReceivablePlanDO.builder()
                 .id(nextId())
                 .period(1)
@@ -440,23 +460,29 @@ public class CrmTestDataFactory {
                 .price(BigDecimal.valueOf(5000))
                 .remindDays(3)
                 .build();
-        setBaseFields(plan, tenantId);
-        receivablePlanMapper.insert(plan);
-        return plan;
+        setBaseFields(plan);
+        return TenantUtils.execute(tenantId, () -> {
+            receivablePlanMapper.insert(plan);
+            return plan;
+        });
     }
 
     public CrmContactBusinessDO createContactBusiness(Long tenantId, Long contactId, Long businessId) {
+        validateTenantId(tenantId);
         CrmContactBusinessDO cb = CrmContactBusinessDO.builder()
                 .id(nextId())
                 .contactId(contactId)
                 .businessId(businessId)
                 .build();
-        setBaseFields(cb, tenantId);
-        contactBusinessMapper.insert(cb);
-        return cb;
+        setBaseFields(cb);
+        return TenantUtils.execute(tenantId, () -> {
+            contactBusinessMapper.insert(cb);
+            return cb;
+        });
     }
 
     public CrmPermissionDO createPermission(Long tenantId, Integer bizType, Long bizId, Long userId) {
+        validateTenantId(tenantId);
         CrmPermissionDO permission = CrmPermissionDO.builder()
                 .id(nextId())
                 .bizType(bizType)
@@ -464,54 +490,53 @@ public class CrmTestDataFactory {
                 .userId(userId)
                 .level(1)
                 .build();
-        setBaseFields(permission, tenantId);
-        permissionMapper.insert(permission);
-        return permission;
+        setBaseFields(permission);
+        return TenantUtils.execute(tenantId, () -> {
+            permissionMapper.insert(permission);
+            return permission;
+        });
     }
 
     public void clearAll() {
-        followUpRecordMapper.delete(null);
-        contactBusinessMapper.delete(null);
-        businessProductMapper.delete(null);
-        contractProductMapper.delete(null);
-        receivablePlanMapper.delete(null);
-        receivableMapper.delete(null);
-        contractMapper.delete(null);
-        businessMapper.delete(null);
-        businessStatusMapper.delete(null);
-        businessStatusTypeMapper.delete(null);
-        contactMapper.delete(null);
-        clueMapper.delete(null);
-        productMapper.delete(null);
-        productCategoryMapper.delete(null);
-        permissionMapper.delete(null);
-        customerMapper.delete(null);
-        customerPoolConfigMapper.delete(null);
-        customerLimitConfigMapper.delete(null);
+        TenantUtils.executeIgnore(() -> {
+            followUpRecordMapper.delete(null);
+            contactBusinessMapper.delete(null);
+            businessProductMapper.delete(null);
+            contractProductMapper.delete(null);
+            receivablePlanMapper.delete(null);
+            receivableMapper.delete(null);
+            contractMapper.delete(null);
+            businessMapper.delete(null);
+            businessStatusMapper.delete(null);
+            businessStatusTypeMapper.delete(null);
+            contactMapper.delete(null);
+            clueMapper.delete(null);
+            productMapper.delete(null);
+            productCategoryMapper.delete(null);
+            permissionMapper.delete(null);
+            customerMapper.delete(null);
+            customerPoolConfigMapper.delete(null);
+            customerLimitConfigMapper.delete(null);
+        });
     }
 
     public long getCustomerCount(Long tenantId) {
-        return customerMapper.selectCount(new QueryWrapper<CrmCustomerDO>()
-                .eq("tenant_id", tenantId));
+        return customerMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmCustomerDO>().eq("tenant_id", tenantId));
     }
 
     public long getClueCount(Long tenantId) {
-        return clueMapper.selectCount(new QueryWrapper<CrmClueDO>()
-                .eq("tenant_id", tenantId));
+        return clueMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmClueDO>().eq("tenant_id", tenantId));
     }
 
     public long getBusinessCount(Long tenantId) {
-        return businessMapper.selectCount(new QueryWrapper<CrmBusinessDO>()
-                .eq("tenant_id", tenantId));
+        return businessMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmBusinessDO>().eq("tenant_id", tenantId));
     }
 
     public long getContractCount(Long tenantId) {
-        return contractMapper.selectCount(new QueryWrapper<CrmContractDO>()
-                .eq("tenant_id", tenantId));
+        return contractMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmContractDO>().eq("tenant_id", tenantId));
     }
 
     public long getReceivableCount(Long tenantId) {
-        return receivableMapper.selectCount(new QueryWrapper<CrmReceivableDO>()
-                .eq("tenant_id", tenantId));
+        return receivableMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmReceivableDO>().eq("tenant_id", tenantId));
     }
 }

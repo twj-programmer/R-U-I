@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Import;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Import(CrmTestDataFactory.class)
+@Import({CrmTestDataFactory.class, TenantTestConfiguration.class})
 class CrmTestSupportTest extends BaseDbUnitTest {
 
     @Resource
@@ -285,10 +285,9 @@ class CrmTestSupportTest extends BaseDbUnitTest {
 
     @Test
     void testNullTenantId() {
-        CrmCustomerDO customer = testDataFactory.createCustomer(null, "无租户客户");
-        assertNotNull(customer);
-        assertNotNull(customer.getId());
-        assertNotNull(customer.getName());
+        assertThrows(IllegalArgumentException.class, () -> {
+            testDataFactory.createCustomer(null, "无租户客户");
+        });
     }
 
     @Test
