@@ -13,7 +13,8 @@ export interface ContractVO {
   ownerUserId: number
   ownerUserName?: string
   ownerUserDeptName?: string
-  processInstanceId: number
+  // 流程实例由 BPM 以字符串编号返回；草稿合同尚未发起流程时为空
+  processInstanceId?: string
   auditStatus: number
   orderDate: Date
   startTime: Date

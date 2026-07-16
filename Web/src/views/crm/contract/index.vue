@@ -232,7 +232,7 @@
             {{ t('crm.contract.submitAudit') }}
           </el-button>
           <el-button
-            v-else
+            v-else-if="scope.row.processInstanceId"
             link
             v-hasPermi="['crm:contract:update']"
             type="primary"
@@ -304,6 +304,9 @@ const customerList = ref<CustomerApi.CustomerVO[]>([]) // 客户列表
 
 /** tab 切换 */
 const handleTabClick = (tab: TabsPaneContext) => {
+  if (typeof tab.paneName !== 'string') {
+    return
+  }
   queryParams.sceneType = tab.paneName
   handleQuery()
 }

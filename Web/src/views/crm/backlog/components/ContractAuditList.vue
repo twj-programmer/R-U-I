@@ -151,6 +151,7 @@
       <el-table-column fixed="right" :label="t('common.action')" min-width="150">
         <template #default="scope">
           <el-button
+            v-if="scope.row.processInstanceId"
             link
             v-hasPermi="['crm:contract:update']"
             type="primary"
