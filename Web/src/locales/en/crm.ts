@@ -480,6 +480,7 @@ export default {
     paramError: 'Parameter error, receivable cannot be empty!',
     submitAuditConfirm: 'Are you sure to submit receivable [{no}] for audit?',
     submitAuditSuccess: 'Submit audit successfully!',
+    noProcessTip: 'No approval process yet, please submit for approval first',
     createReceivable: 'Create Receivable',
     basicInfoTab: 'Basic Info',
     operateLogTab: 'Operation Log',

@@ -137,6 +137,7 @@ import { dateFormatter, dateFormatter2 } from '@/utils/formatTime'
 import * as ReceivableApi from '@/api/crm/receivable'
 import { AUDIT_STATUS } from './common'
 import { erpPriceTableColumnFormatter } from '@/utils'
+import { ElMessage } from 'element-plus'
 
 defineOptions({ name: 'CrmReceivableAuditList' })
 
@@ -170,6 +171,10 @@ const handleQuery = () => {
 
 /** 查看审批 */
 const handleProcessDetail = (row: ReceivableApi.ReceivableVO) => {
+  if (!row.processInstanceId) {
+    ElMessage.warning(t('receivable.noProcessTip'))
+    return
+  }
   push({ name: 'BpmProcessInstanceDetail', query: { id: row.processInstanceId } })
 }
 

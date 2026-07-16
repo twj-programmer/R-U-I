@@ -301,6 +301,10 @@ const handleSubmit = async (row: ReceivableApi.ReceivableVO) => {
 
 /** 查看审批 */
 const handleProcessDetail = (row: ReceivableApi.ReceivableVO) => {
+  if (!row.processInstanceId) {
+    message.warning(t('receivable.noProcessTip'))
+    return
+  }
   push({ name: 'BpmProcessInstanceDetail', query: { id: row.processInstanceId } })
 }
 

@@ -1,0 +1,59 @@
+### D2-REC-01 回款审批接口验证 (.http)
+
+## 环境变量
+# @baseUrl = http://localhost:8080/admin-api
+# @token = Bearer <your-token>
+# @tenantId = 1
+
+### 1. 正常提交回款审批
+# 前置: 回款记录处于草稿状态(auditStatus=0)，当前用户有 crm:receivable:update 权限
+PUT {{baseUrl}}/crm/receivable/submit?id=<receivableId>
+Authorization: {{token}}
+tenant-id: {{tenantId}}
+
+# 期望响应:
+# HTTP 200 { "code": 0, "data": true }
+# 验证: audit_status → 10, process_instance_id 非空
+
+### 2. 非草稿状态提交 — 应拒绝
+# 前置: 回款 auditStatus != 0 (如已审批通过=20)
+PUT {{baseUrl}}/crm/receivable/submit?id=<approvedReceivableId>
+Authorization: {{token}}
+tenant-id: {{tenantId}}
+
+# 期望响应:
+# { "code": >=1000, "msg": 含"非草稿"或"提交" }
+
+### 3. 无权限提交 — 应403
+# 前置: 使用无 crm:receivable:update 权限的账号
+PUT {{baseUrl}}/crm/receivable/submit?id=<receivableId>
+Authorization: {{noPermToken}}
+tenant-id: {{tenantId}}
+
+# 期望响应: HTTP 403
+
+### 4. 跨租户提交 — 应拒绝或不可见
+# 前置: 回款属于 tenant=1, 使用 tenant=2 的 token
+PUT {{baseUrl}}/crm/receivable/submit?id=<receivableId>
+Authorization: {{token}}
+tenant-id: 2
+
+# 期望: 查不到该记录或权限拒绝
+
+### 5. 重复提交（并发场景）— D2-APR-01 修复后验证
+# 前置: D2-APR-01 实现原子 CAS (id+tenant+auditStatus=0 → 10)
+PUT {{baseUrl}}/crm/receivable/submit?id=<receivableId>
+Authorization: {{token}}
+tenant-id: {{tenantId}}
+
+# 期望: 第二次请求返回"非草稿不可提交"
+
+### 6. BPM 审批通过回调 — 验证 CRM 状态同步
+# 此接口由 BPM 内部回调，非前端直接调用
+# 验证点: CrmReceivableStatusListener.onEvent → auditStatus → 20
+
+### 7. BPM 审批拒绝回调 — 验证 CRM 状态同步
+# 验证点: auditStatus → 30
+
+### 8. BPM 取消回调 — 验证 CRM 状态同步
+# 验证点: auditStatus → 40 (当前阻塞于 D2-APR-01, CrmAuditStatusUtils bug)

@@ -382,6 +382,59 @@ class CrmReceivableServiceTest {
         }
     }
 
+    // ==================== 边界 & 异常场景 ====================
+
+    @Nested
+    @DisplayName("边界与异常场景：重复回调、空参数、BPM异常")
+    class BoundaryAndErrorTest {
+
+        @Test
+        @DisplayName("重复 BPM 审批通过回调：PROCESS 已变更为 APPROVE 后再次回调应拒绝")
+        void testDuplicateApproveCallback() {
+            // 第一次回调通过后状态已变为 APPROVE
+            CrmReceivableDO approved = buildReceivable(CrmAuditStatusEnum.APPROVE);
+            when(receivableMapper.selectById(RECEIVABLE_ID)).thenReturn(approved);
+
+            // 第二次 BPM APPROVE 回调 → 应拒绝（仅 PROCESS 可被回调）
+            assertThrows(ServiceException.class, () ->
+                    receivableService.updateReceivableAuditStatus(RECEIVABLE_ID, 2));
+        }
+
+        @Test
+        @DisplayName("重复 BPM 取消回调：已取消状态拒绝再次回调")
+        void testDuplicateCancelCallback() {
+            CrmReceivableDO cancelled = buildReceivable(CrmAuditStatusEnum.CANCEL);
+            when(receivableMapper.selectById(RECEIVABLE_ID)).thenReturn(cancelled);
+
+            assertThrows(ServiceException.class, () ->
+                    receivableService.updateReceivableAuditStatus(RECEIVABLE_ID, 4));
+        }
+
+        @Test
+        @DisplayName("BPM 创建流程异常 → 不写入 process_instance_id，保留草稿")
+        void testBpmCreateProcessFails() {
+            CrmReceivableDO draft = buildReceivable(CrmAuditStatusEnum.DRAFT);
+            when(receivableMapper.selectById(RECEIVABLE_ID)).thenReturn(draft);
+            when(bpmProcessInstanceApi.createProcessInstance(eq(USER_ID), any(BpmProcessInstanceCreateReqDTO.class)))
+                    .thenThrow(new RuntimeException("BPM service unavailable"));
+
+            assertThrows(RuntimeException.class, () ->
+                    receivableService.submitReceivable(RECEIVABLE_ID, USER_ID));
+
+            // BPM 异常后不得写入 process_instance_id 或修改 audit_status
+            verify(receivableMapper, never()).updateById(Mockito.<CrmReceivableDO>any());
+        }
+
+        @Test
+        @DisplayName("提交时 receivable 不存在 → 明确错误")
+        void testSubmitNonExistent() {
+            when(receivableMapper.selectById(RECEIVABLE_ID)).thenReturn(null);
+
+            assertThrows(ServiceException.class, () ->
+                    receivableService.submitReceivable(RECEIVABLE_ID, USER_ID));
+        }
+    }
+
     // ==================== 辅助方法 ====================
 
     private CrmReceivableSaveReqVO buildCreateReqVO() {

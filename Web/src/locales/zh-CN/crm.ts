@@ -480,6 +480,7 @@ export default {
     paramError: '参数错误，回款不能为空！',
     submitAuditConfirm: '您确定提交编号为【{no}】的回款审核吗？',
     submitAuditSuccess: '提交审核成功！',
+    noProcessTip: '暂无审批流程，请先提交审批',
     createReceivable: '创建回款',
     basicInfoTab: '详细资料',
     operateLogTab: '操作日志',
