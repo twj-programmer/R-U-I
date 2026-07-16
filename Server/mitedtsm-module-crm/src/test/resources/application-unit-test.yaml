@@ -2,6 +2,7 @@ spring:
     main:
         lazy-initialization: true # 开启懒加载，加快速度
         banner-mode: off # 单元测试，禁用 Banner
+        allow-bean-definition-overriding: true # 允许测试配置覆盖生产 bean
 
 --- #################### 数据库相关配置 ####################
 
@@ -47,3 +48,5 @@ mybatis-plus:
 mitedtsm:
   info:
     base-package: com.meession.etm
+  tenant:
+    enable: false
