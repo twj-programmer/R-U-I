@@ -11,10 +11,10 @@
 
 | 反馈 | 处理结论 | 依据/证据 |
 |---|---|---|
-| 回滚不得删除历史权限 | 已修复。正向迁移只给本次新建菜单写入 `creator/updater=D2-STAT-01`；回滚只删除该标记菜单及其角色关联 | V1.5 7.5.3；自动化 SQL 契约测试；隔离 MySQL 实际执行 |
+| 回滚不得删除历史权限 | 已修复。正向迁移只给本次新建菜单写入 `creator/updater=D2-STAT-01`；回滚只删除该标记菜单及其角色关联 | V1.5 7.5.3；自动化 SQL 契约测试；隔离 MySQL 实际执行待独立复核 |
 | 撤销既有 `getContractSummary` 查询语义修改 | 未撤销。V1.5 第 12.4 条明确授权本任务把 `receivable.deleted=0` 移入 `LEFT JOIN ... ON` 并保留 `IFNULL(...,0)` | 最新 `origin/docs@b3219e0` V1.5 第 12 节优先于旧表述 |
 | 确认客户行业/类型、无回款空值/0 | 已按唯一口径保留：列名为“客户行业”，取 `industryId`；客户来源取 `source`；无回款为数值 `0.00` | V1.5 第 12.1 至 12.3 条 |
-| HTTP/AOP、公开边界、范围、并发/事务测试 | 已补 Spring MVC HTTP + `@PreAuthorize` AOP、有权/无权公开边界、部门/负责人、租户、并发和失败无半文件测试 | CRM 定向测试 17/17；CRM 全量测试 69/69 |
+| HTTP/AOP、公开边界、范围、并发/事务测试 | 已补 Spring MVC HTTP + `@PreAuthorize` AOP；新增真实 Service + H2 的公开 GET 导出测试，覆盖负责人、部门展开、日期、租户隔离、空数据和导出后无写入副作用 | 本次 D2-STAT 定向测试；只读导出不存在业务写事务，正式 CT-03 仍需独立复测 |
 
 ## 2. 接口契约
 
@@ -38,34 +38,30 @@
 - 回滚只匹配 `permission='crm:statistics-customer:export' AND creator='D2-STAT-01'`；
 - 角色关联仅按上述菜单 ID 删除；既有统计菜单、历史同名权限和业务数据不删除。
 
-隔离 MySQL 实际验证：
-
-- 历史权限场景：`historical_menu=1`、`historical_role_link=1`，回滚后均保留；
-- 本迁移新建场景：`migration_menu=0`、`migration_role_link=0`，回滚后均删除；
-- 父菜单：`parent_menu=1`，回滚后保留；
-- 验证使用的临时数据库已删除，未操作开发库业务数据或 Docker 数据卷。
+隔离 MySQL 实际验证：待 CT-03 独立复核。本分支已自动化校验 SQL 的父菜单唯一性、迁移创建标记和回滚精确删除条件，但未把隔离 MySQL 实际执行作为本次已完成证据。
 
 ## 4. 自动化与构建结果
 
 ### 4.1 D2-STAT-01 定向测试
 
 ```powershell
-mvn -pl mitedtsm-module-crm "-Dtest=CrmStatisticsCustomerExportContractTest,CrmStatisticsCustomerExportDataTest,CrmStatisticsCustomerExportSecurityTest,CrmStatisticsCustomerServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+cd Server
+mvn -B -ntp -pl mitedtsm-module-crm "-Dtest=CrmStatisticsCustomerExportContractTest,CrmStatisticsCustomerExportDataTest,CrmStatisticsCustomerExportSecurityTest,CrmStatisticsCustomerExportHttpIntegrationTest,CrmStatisticsCustomerServiceImplTest" test
 ```
 
-结果：17 个测试，0 失败，0 错误，0 跳过。
+结果：20 个测试，0 失败，0 错误，0 跳过。
 
 覆盖：
 
-- Spring MVC 的公开 GET 路径；
+- Spring MVC 的公开 GET 路径，真实统计 Service、H2 数据和 XLSX 响应；
 - `@PreAuthorize` AOP：仅有查询权限、没有导出权限时业务码为 403，服务不执行；
 - 有导出权限时返回 XLSX；
 - 10 列顺序、行业/来源字典名称、空值和未解析编号回退；
 - 无回款 `0.00`、已回款、已删除回款仍保留合同；
-- 指定负责人、部门展开、租户隔离、日期范围；
+- 指定负责人、部门展开、租户隔离、日期范围、空数据和导出后无写入副作用；
 - 8 个并发导出响应互不污染；
 - 查询异常时不写出半个工作簿；
-- Mapper 保持只读，不存在新增业务写事务，因此业务事务回滚不适用。
+- Mapper 保持只读；本次以导出前后客户、合同、回款记录计数不变验证无写入副作用。只读导出“事务回滚”如何记录仍以正式 CT-03 复测结论为准。
 
 ### 4.2 CRM 模块全量测试
 
@@ -73,7 +69,7 @@ mvn -pl mitedtsm-module-crm "-Dtest=CrmStatisticsCustomerExportContractTest,CrmS
 mvn -pl mitedtsm-module-crm test
 ```
 
-结果：69 个测试，0 失败，0 错误，0 跳过。
+本次未重新执行 CRM 模块全量测试，不能作为本次提交的验证结论。
 
 ### 4.3 前端生产构建
 
@@ -82,7 +78,7 @@ $env:CI='true'
 pnpm run build:prod
 ```
 
-结果：构建成功。
+本次未重新执行前端生产构建，不能作为本次提交的验证结论。
 
 ## 5. 本地运行 HTTP 补充验证与风险
 

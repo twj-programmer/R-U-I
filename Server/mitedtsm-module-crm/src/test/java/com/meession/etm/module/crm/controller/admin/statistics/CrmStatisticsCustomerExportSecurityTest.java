@@ -6,8 +6,10 @@ import com.meession.etm.framework.dict.core.DictFrameworkUtils;
 import com.meession.etm.framework.security.core.service.SecurityFrameworkService;
 import com.meession.etm.framework.web.core.handler.GlobalExceptionHandler;
 import com.meession.etm.module.crm.service.statistics.CrmStatisticsCustomerService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 @SpringJUnitConfig(CrmStatisticsCustomerExportSecurityTest.SecurityTestConfiguration.class)
+@ResourceLock("DictFrameworkUtils")
 class CrmStatisticsCustomerExportSecurityTest {
 
     private static final String EXPORT_PERMISSION = "crm:statistics-customer:export";
@@ -45,9 +48,12 @@ class CrmStatisticsCustomerExportSecurityTest {
     private AtomicBoolean exportAllowed;
 
     private MockMvc mockMvc;
+    private DictDataCommonApi originalDictDataApi;
 
     @BeforeEach
     void setUp() {
+        originalDictDataApi = (DictDataCommonApi) org.springframework.test.util.ReflectionTestUtils
+                .getField(DictFrameworkUtils.class, "dictDataApi");
         exportAllowed.set(false);
         reset(customerService);
         when(customerService.getContractSummary(any())).thenReturn(Collections.emptyList());
@@ -58,6 +64,13 @@ class CrmStatisticsCustomerExportSecurityTest {
         mockMvc = standaloneSetup(customerController)
                 .setControllerAdvice(new GlobalExceptionHandler("crm-test", mock(ApiErrorLogCommonApi.class)))
                 .build();
+    }
+
+    @AfterEach
+    void restoreDictDataApi() {
+        DictFrameworkUtils.clearCache();
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                DictFrameworkUtils.class, "dictDataApi", originalDictDataApi);
     }
 
     @Test

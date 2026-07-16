@@ -13,7 +13,10 @@ import com.meession.etm.module.crm.controller.admin.statistics.vo.customer.CrmSt
 import com.meession.etm.module.crm.controller.admin.statistics.vo.customer.CrmStatisticsDictFallbackConvert;
 import com.meession.etm.module.crm.service.statistics.CrmStatisticsCustomerService;
 import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -56,7 +59,21 @@ import static org.mockito.Mockito.when;
 import static com.meession.etm.module.crm.enums.DictTypeConstants.CRM_CUSTOMER_INDUSTRY;
 import static com.meession.etm.module.crm.enums.DictTypeConstants.CRM_CUSTOMER_SOURCE;
 
+@ResourceLock("DictFrameworkUtils")
 class CrmStatisticsCustomerExportContractTest {
+
+    private DictDataCommonApi originalDictDataApi;
+
+    @BeforeEach
+    void saveDictDataApi() {
+        originalDictDataApi = (DictDataCommonApi) ReflectionTestUtils.getField(DictFrameworkUtils.class, "dictDataApi");
+    }
+
+    @AfterEach
+    void restoreDictDataApi() {
+        DictFrameworkUtils.clearCache();
+        ReflectionTestUtils.setField(DictFrameworkUtils.class, "dictDataApi", originalDictDataApi);
+    }
 
     @Test
     void exportEndpointShouldUseFrozenPathAndPermission() throws NoSuchMethodException {
