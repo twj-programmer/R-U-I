@@ -8,6 +8,8 @@ import com.meession.etm.framework.tenant.config.TenantProperties;
 import com.meession.etm.framework.tenant.core.db.TenantDatabaseInterceptor;
 import com.meession.etm.framework.tenant.core.util.TenantUtils;
 import com.meession.etm.framework.test.core.ut.BaseDbUnitTest;
+import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
+import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessProductDO;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -21,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +41,8 @@ class CrmBusinessMapperDbTest extends BaseDbUnitTest {
 
     @Resource
     private CrmBusinessMapper businessMapper;
+    @Resource
+    private CrmBusinessProductMapper businessProductMapper;
     @Resource
     private JdbcTemplate jdbcTemplate;
     @Resource
@@ -89,6 +94,29 @@ class CrmBusinessMapperDbTest extends BaseDbUnitTest {
                 })));
 
         assertEquals(List.of(11L, 0), readStageAndVersion(4L));
+    }
+
+    @Test
+    void updateBusinessAndProduct_shouldRollbackTogetherWhenProductWriteFails() {
+        insertBusiness(5L, TENANT_A, 0, 11L);
+
+        assertThrows(IllegalStateException.class, () -> TenantUtils.execute(TENANT_A, () ->
+                transactionTemplate.executeWithoutResult(status -> {
+                    CrmBusinessDO update = new CrmBusinessDO().setId(5L)
+                            .setTotalProductPrice(new BigDecimal("100.00"))
+                            .setTotalPrice(new BigDecimal("90.00"));
+                    assertEquals(1, businessMapper.updateBusinessByVersion(update, 0));
+                    businessProductMapper.insert(new CrmBusinessProductDO()
+                            .setBusinessId(5L).setProductId(99L)
+                            .setProductPrice(new BigDecimal("100.00"))
+                            .setBusinessPrice(new BigDecimal("100.00"))
+                            .setCount(BigDecimal.ONE).setTotalPrice(new BigDecimal("100.00")));
+                    throw new IllegalStateException("force product write rollback");
+                })));
+
+        assertEquals(List.of(11L, 0), readStageAndVersion(5L));
+        assertEquals(0, TenantUtils.execute(TENANT_A,
+                () -> businessProductMapper.selectListByBusinessId(5L).size()));
     }
 
     private int concurrentUpdate(CountDownLatch ready, CountDownLatch start, Long statusId) throws Exception {
