@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meession.etm.module.crm.dal.mysql.customer.CrmHighSeasRecordMapper">
+
+    <sql id="columns">
+        id, customer_id, action_type, before_owner_user_id, after_owner_user_id, reason, operator_user_id, action_time, tenant_id, deleted, create_time, update_time, creator, updater
+    </sql>
+
+    <select id="selectPageByCondition" resultType="com.meession.etm.module.crm.dal.dataobject.customer.CrmHighSeasRecordDO">
+        SELECT <include refid="columns"/>
+        FROM crm_high_seas_record
+        WHERE deleted = 0
+        <if test="customerId != null">
+            AND customer_id = #{customerId}
+        </if>
+        <if test="actionType != null">
+            AND action_type = #{actionType}
+        </if>
+        <if test="beginTime != null">
+            AND action_time >= #{beginTime}
+        </if>
+        <if test="endTime != null">
+            AND action_time <= #{endTime}
+        </if>
+        ORDER BY action_time DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="selectCountByCondition" resultType="int">
+        SELECT COUNT(*)
+        FROM crm_high_seas_record
+        WHERE deleted = 0
+        <if test="customerId != null">
+            AND customer_id = #{customerId}
+        </if>
+        <if test="actionType != null">
+            AND action_type = #{actionType}
+        </if>
+        <if test="beginTime != null">
+            AND action_time >= #{beginTime}
+        </if>
+        <if test="endTime != null">
+            AND action_time <= #{endTime}
+        </if>
+    </select>
+
+    <select id="selectById" resultType="com.meession.etm.module.crm.dal.dataobject.customer.CrmHighSeasRecordDO">
+        SELECT <include refid="columns"/>
+        FROM crm_high_seas_record
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByCustomerId" resultType="com.meession.etm.module.crm.dal.dataobject.customer.CrmHighSeasRecordDO">
+        SELECT <include refid="columns"/>
+        FROM crm_high_seas_record
+        WHERE customer_id = #{customerId} AND tenant_id = #{tenantId} AND deleted = 0
+        ORDER BY action_time DESC
+    </select>
+
+    <select id="countTodayReceivedByUserId" resultType="long">
+        SELECT COUNT(*)
+        FROM crm_high_seas_record
+        WHERE after_owner_user_id = #{userId}
+          AND action_type = 'RECEIVE'
+          AND action_time >= #{actionTime}
+          AND tenant_id = #{tenantId}
+          AND deleted = 0
+    </select>
+
+    <select id="countReceivedInDaysByUserIdAndCustomerId" resultType="long">
+        SELECT COUNT(*)
+        FROM crm_high_seas_record
+        WHERE after_owner_user_id = #{userId}
+          AND customer_id = #{customerId}
+          AND action_type = 'RECEIVE'
+          AND action_time >= #{actionTime}
+          AND tenant_id = #{tenantId}
+          AND deleted = 0
+    </select>
+
+</mapper>
