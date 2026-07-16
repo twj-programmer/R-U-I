@@ -1,7 +1,6 @@
 /**
  * 数据字典工具类
  */
-import { ref } from 'vue'
 import { useDictStoreWithOut } from '@/store/modules/dict'
 import { ElementPlusInfoType } from '@/types/elementPlus'
 
@@ -99,13 +98,13 @@ export const getDictObj = (dictType: string, value: any): DictDataType | undefin
  */
 export const getDictLabel = (dictType: string, value: any): string => {
   const dictOptions: DictDataType[] = getDictOptions(dictType)
-  const dictLabel = ref('')
+  let dictLabel = ''
   dictOptions.forEach((dict: DictDataType) => {
     if (dict.value === value + '') {
-      dictLabel.value = dict.label
+      dictLabel = dict.label
     }
   })
-  return dictLabel.value
+  return dictLabel
 }
 
 export enum DICT_TYPE {
