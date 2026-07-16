@@ -47,7 +47,7 @@ public class CrmCustomerOwnerHistoryServiceImpl implements CrmCustomerOwnerHisto
                 .map(this::buildRespVO)
                 .collect(Collectors.toList());
 
-        return new PageResult<>(respList, total);
+        return new PageResult<>(respList, (long) total);
     }
 
     @Override
