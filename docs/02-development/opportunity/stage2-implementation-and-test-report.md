@@ -160,3 +160,17 @@ pnpm.cmd build:dev
 
 - 结果：17 项测试通过，0 失败、0 错误、0 跳过。`CrmBusinessControllerTest` 通过 MockMvc 覆盖 `PUT /crm/business/update-status` 的正常 HTTP 调用与双填参数拒绝，并断言既有 `crm:business:update` 权限契约；其余测试覆盖输单原因、版本冲突、跨租户条件更新、两并发请求单赢家和真实事务回滚。
 - 前端全量 `pnpm ts:check` 使用 8 GB Node 堆执行；商机 API 与本任务的 5 个 Vue 文件均未出现在错误列表中。全仓仍有 7,616 个既有自动导入缺失错误，均在本任务范围外，故全量检查不标记为通过。CT-07 交叉测试仍需按 V1.5 由指定人员独立执行。
+
+## 10. 王文渊 AI 辅助集成预验与 CT-07 状态
+
+- 预验执行人：王文渊（AI 辅助）；执行日期：2026-07-16。
+- 最新定向验证命令：
+
+  ```powershell
+  cd Server
+  mvn -B -ntp -pl mitedtsm-module-crm `
+    '-Dtest=CrmBusinessServiceImplTest,CrmBusinessMapperDbTest,CrmBusinessControllerTest,CrmBusinessControllerSecurityTest,DictTypeConstantsTest,BusinessLoseReasonMigrationSqlContractTest' test
+  ```
+
+- 结果：19 项通过，0 失败、0 错误、0 跳过。覆盖状态互斥、前进阶段、输单原因、版本冲突、跨租户、并发单赢家、金额与产品行真实事务回滚、HTTP 参数校验及无权限拒绝。
+- CT-07 状态：**AI 辅助集成预验通过，待刘焘玮按 V1.5 对最新 develop 独立复测并登记正式结论。** 本预验不替代指定交叉测试人的独立确认。
