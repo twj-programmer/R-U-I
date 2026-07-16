@@ -1,6 +1,6 @@
 # CRM 阶段 2 统一开发基线
 
-**版本**：V1.1  
+**版本**：V1.2  
 **生效日期**：2026-07-16  
 **状态**：已裁决，作为阶段 2 开发、测试与评审的唯一基线  
 **适用范围**：客户、线索、商机、合同、回款及其与 BPM/OA 的接口边界  
@@ -303,6 +303,34 @@
 6. 状态更新采用 `id + tenant_id + version` 条件更新，成功后 `version=version+1`。影响行数为 `0` 时返回 `BUSINESS_UPDATE_VERSION_CONFLICT=1_020_002_004`，提示“商机数据已被他人更新，请刷新后重试”；不得复用或另行分配。
 7. 本任务迁移正向文件为 `20260716_d2_business_state_machine.sql`，回滚文件为 `20260716_d2_business_state_machine_rollback.sql`。回滚删除本任务新增字段；不得改写 `database/base`。
 
+### 7.5 V1.2 补充任务契约
+
+#### 7.5.1 D2-MKT-01 商机输单原因配置
+
+1. 复用既有系统字典类型与数据管理能力；不得新建 CRM 平行配置表、CRM 配置 Controller 或 CRM 配置页面。既有 `/crm/business-status/**` 与 `crm_customer_source` 均为已实现能力，本任务不得重复实现。
+2. 新增唯一字典类型常量 `crm_business_lose_reason`，显示名称固定为“CRM 商机输单原因”。服务端 `DictTypeConstants` 与前端 `DICT_TYPE` 必须使用完全相同的字符串。
+3. 初始启用数据固定为：`COMPETITOR`=竞品原因、`PRICE`=价格原因、`REQUIREMENT_MISMATCH`=需求不匹配、`BUDGET`=预算不足、`TIMING`=时机不符、`OTHER`=其他；排序依次为 1 至 6。允许管理员通过既有系统字典页面维护标签、排序和启停，但不得变更代码值。
+4. `D2-BIZ-01` 在新的输单状态更新中必须调用既有 `DictDataApi.validateDictDataList("crm_business_lose_reason", ...)` 校验该值为启用字典数据；字典任务不得修改商机服务、状态接口或商机前端表单。
+5. 本任务正向迁移为 `20260716_d2_business_lose_reason_dict.sql`，回滚为 `20260716_d2_business_lose_reason_dict_rollback.sql`。正向脚本按字典类型与代码值幂等插入；回滚前必须确认 `crm_business` 中没有未删除记录引用任一输单原因，否则停止回滚并报告引用数量，禁止丢失历史含义。
+6. 主责文件仅限 CRM 字典类型常量、前端字典类型常量、增量/回滚 SQL、任务自身测试与说明；不得修改 `CrmBusinessServiceImpl`、`CrmBusinessController`、商机状态表单或系统通用字典 Controller。
+
+#### 7.5.2 D2-QA-01 CRM 测试底座
+
+1. 当前 CRM 模块有 `application-unit-test.yaml`，但缺少其引用的 `src/test/resources/sql/create_tables.sql` 与任何 CRM Java 测试类。本任务负责补齐可重复执行的 H2 测试启动基础，不新增任何生产接口、字段、权限、生产迁移或 `database/base` 修改。
+2. 固定交付物为：`src/test/resources/sql/create_tables.sql`、`src/test/resources/sql/clean.sql`、`src/test/java/**/support/CrmTestDataFactory.java`、`src/test/java/**/support/CrmTestSupportTest.java` 及测试运行说明。公共 SQL 只包含启动所有阶段 2 测试所必需的最小公共表；每个业务任务把自己的表与测试数据放在以任务编号命名的独立 `@Sql` 脚本中。
+3. 统一测试基类为既有 `BaseDbUnitTest` 或 `BaseDbAndRedisUnitTest`；不得引入 Testcontainers、外部数据库、真实 Redis、网络依赖或改变 Maven 依赖。`clean.sql` 只清理 H2 内存测试表，不得触及开发数据库。
+4. 文件所有权：本任务独占 `src/test/java/**/support/**` 与 `src/test/resources/sql/create_tables.sql`、`clean.sql`；其他任务分别拥有以自身任务编号命名的测试类和 SQL。公共测试底座变更必须由 `feature/workorder` 处理，避免测试资源冲突。
+5. 验收为：在干净环境执行 CRM 模块测试时，测试上下文能加载；连续运行两次无表已存在、脏数据或依赖外部服务失败；测试数据工厂自身有正常、空值和租户隔离断言。业务任务的测试不能以此任务替代。
+
+#### 7.5.3 D2-STAT-01 客户转化明细导出
+
+1. 已有客户、漏斗、绩效、画像和排行统计查询接口均继续保留；不得新建平行统计表、平行统计 Controller 或重复查询接口。本任务仅新增 `GET /crm/statistics-customer/export-contract-summary`。
+2. 导出接口复用 `CrmStatisticsCustomerReqVO`，只接收既有 `deptId`、`userId`、`interval`、`times` 参数；必须复用 `getContractSummary` 的服务逻辑与数据权限结果，不得直连 Mapper 绕过租户、部门或负责人范围。
+3. 接口返回 XLSX 下载流，文件名固定为 `客户转化明细_yyyyMMddHHmmss.xlsx`。列顺序固定为：客户名称、首次合同名称、合同金额、回款金额、客户类型、客户来源、负责人、创建人、创建时间、签约时间。空值导出为空单元格，不得以 0、当前用户或虚构日期替代。
+4. 新增且仅新增权限 `crm:statistics-customer:export`；前端导出按钮仅位于既有客户转化率页面，并以此权限控制。迁移 SQL 使用现有 `crm:statistics-customer:query` 菜单作为父级创建隐藏按钮权限；父菜单不存在或多条匹配时迁移失败，不得猜测菜单 ID。
+5. 本任务正向迁移为 `20260716_d2_statistics_customer_export_permission.sql`，回滚为 `20260716_d2_statistics_customer_export_permission_rollback.sql`；回滚只删除精确权限 `crm:statistics-customer:export`，不删除已有统计菜单或数据。
+6. 验收覆盖：有权限导出、无权限拒绝、空数据导出、日期边界、部门/负责人数据范围、跨租户隔离、导出内容与既有 `get-contract-summary` 同条件结果一致。不得用前端筛选替代后端数据权限。
+
 ---
 
 ## 8. 阶段 2 任务归属、分支和文件所有权
@@ -317,8 +345,11 @@
 | `D2-BIZ-01` | `feature/opportunity` | 商机状态机、版本、输单原因、前端调用、SQL 与回滚 | 合同/回款审批状态与接口 |
 | `D2-CON-01` | `feature/oa` | 合同审批文档、接口测试、前端五态显示与 OA 待办联调证据 | 合同提交接口、审批字段、BPM 状态模型 |
 | `D2-REC-01` | `feature/finance` | 回款审批文档、接口测试及经另行立项的业务规则 | 未评审的回款新字段、接口或状态 |
+| `D2-MKT-01` | `feature/marketing` | 输单原因系统字典常量、初始数据 SQL、回滚、任务测试与说明 | 商机服务、状态接口、商机表单、既有阶段/客户来源配置 |
+| `D2-QA-01` | `feature/workorder` | CRM 公共测试底座、测试数据工厂、公共 H2 SQL、测试运行说明 | 生产业务代码、生产 SQL、其他任务的测试类和任务 SQL |
+| `D2-STAT-01` | `feature/public-integration` | 客户转化明细导出、导出按钮、权限 SQL、测试 | 已有统计查询接口、统计表、客户/商机/合同核心服务 |
 
-合并顺序：`D2-CUS-01` 与 `D2-BIZ-01` 可并行；`D2-CUS-02` 完成后实施 `D2-CUS-03`；`D2-CON-01` 只在既有五态契约上联调；`D2-REC-01` 不得超出本文明确范围。
+合并顺序：先合入 `D2-QA-01`；`D2-CUS-01`、`D2-STAT-01` 与 `D2-MKT-01` 可并行；`D2-MKT-01` 合入后实施依赖其字典校验的 `D2-BIZ-01`；`D2-CUS-02` 完成后实施 `D2-CUS-03`；`D2-CON-01` 只在既有五态契约上联调；`D2-REC-01` 不得超出本文明确范围。
 
 ---
 
@@ -334,6 +365,9 @@
 | `D2-BIZ-01` | `PUT /crm/business/update-status`、既有商机/产品更新接口 | 商机状态弹窗、报价和产品明细页 |
 | `D2-CON-01` | `PUT /crm/contract/submit`、BPM 待办接口 | CRM 待办与审批详情 |
 | `D2-REC-01` | `PUT /crm/receivable/submit`、BPM 待办接口 | CRM 待办与回款审批详情 |
+| `D2-MKT-01` | 既有系统字典管理接口、`DictDataApi.validateDictDataList` | 商机输单原因下拉数据 |
+| `D2-QA-01` | CRM Maven 测试上下文、公共 H2 SQL、测试数据工厂 | 各业务任务可重复执行的测试环境 |
+| `D2-STAT-01` | `GET /crm/statistics-customer/export-contract-summary` | 客户转化率页面导出按钮 |
 
 每个任务至少包含：正常、边界、无权限、跨租户、并发与事务回滚测试。没有可执行测试和真实结果的任务不得进入交叉测试。
 
