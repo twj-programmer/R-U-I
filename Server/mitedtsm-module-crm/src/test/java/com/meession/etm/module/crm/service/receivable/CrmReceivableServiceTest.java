@@ -10,6 +10,8 @@ import com.meession.etm.module.crm.enums.common.CrmAuditStatusEnum;
 import com.meession.etm.module.crm.service.contract.CrmContractService;
 import com.meession.etm.module.crm.service.permission.CrmPermissionService;
 import com.meession.etm.module.system.api.user.AdminUserApi;
+import com.meession.etm.module.bpm.api.task.BpmProcessInstanceApi;
+import com.meession.etm.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -55,6 +57,8 @@ class CrmReceivableServiceTest {
     private CrmPermissionService permissionService;
     @Mock
     private AdminUserApi adminUserApi;
+    @Mock
+    private BpmProcessInstanceApi bpmProcessInstanceApi;
 
     @InjectMocks
     private CrmReceivableServiceImpl receivableService;
@@ -153,24 +157,24 @@ class CrmReceivableServiceTest {
     class SubmitReceivableTest {
 
         @Test
-        @DisplayName("草稿状态可提交审批")
+        @DisplayName("草稿状态可提交审批 → audit_status=10, process_instance_id 非空")
         void testSubmitFromDraft() {
-            // Given
             CrmReceivableDO draftReceivable = buildReceivable(CrmAuditStatusEnum.DRAFT);
             when(receivableMapper.selectById(RECEIVABLE_ID)).thenReturn(draftReceivable);
+            String mockProcessInstanceId = "proc-001";
+            when(bpmProcessInstanceApi.createProcessInstance(eq(USER_ID), any(BpmProcessInstanceCreateReqDTO.class)))
+                    .thenReturn(mockProcessInstanceId);
+            when(receivableMapper.updateById(Mockito.<CrmReceivableDO>any())).thenReturn(1);
 
-            // When & Then — 不应抛异常（草稿可提交）
-            // 注：bpmProcessInstanceApi 在纯 Mockito 测试中为 null，
-            // 此处验证状态校验通过（不因非草稿而拒绝）
-            assertDoesNotThrow(() -> {
-                try {
-                    receivableService.submitReceivable(RECEIVABLE_ID, USER_ID);
-                } catch (NullPointerException e) {
-                    // 预期：BPM API 未被 mock 导致 NPE，说明状态校验已通过
-                    assertTrue(e.getMessage() == null || true,
-                            "状态校验通过后 BPM API 调用失败，符合预期");
-                }
-            });
+            receivableService.submitReceivable(RECEIVABLE_ID, USER_ID);
+
+            // 验证 BPM 被调用
+            verify(bpmProcessInstanceApi).createProcessInstance(eq(USER_ID), any(BpmProcessInstanceCreateReqDTO.class));
+            // 验证状态更新为 PROCESS(10) 且 processInstanceId 已写入
+            verify(receivableMapper).updateById(Mockito.<CrmReceivableDO>argThat(do_ ->
+                    do_ != null
+                            && CrmAuditStatusEnum.PROCESS.getStatus().equals(do_.getAuditStatus())
+                            && mockProcessInstanceId.equals(do_.getProcessInstanceId())));
         }
 
         @Test
@@ -359,22 +363,21 @@ class CrmReceivableServiceTest {
         }
 
         @Test
-        @DisplayName("BPM 取消(4) → CRM 已取消(40) — 依赖 D2-APR-01 修复 CrmAuditStatusUtils")
+        @DisplayName("BPM 取消(4) → CRM 已取消(40)（V1.5 §11.2: BPM 4→40）")
         void testBpmCancelMapsToCrmCancel() {
-            // 注：当前 CrmAuditStatusUtils 将 BPM CANCEL(4) 错误映射为 CRM 值 4
-            // V1.5 §11.2 要求 BPM 4 → CRM 40
-            // D2-APR-01 修复后此测试应通过
+            // D2-APR-01 需修复 CrmAuditStatusUtils 中 BPM CANCEL 映射
+            // 此处验证最终 auditStatus 必须为 40，不接受 4
             CrmReceivableDO process = buildReceivable(CrmAuditStatusEnum.PROCESS);
             when(receivableMapper.selectById(RECEIVABLE_ID)).thenReturn(process);
             when(receivableMapper.updateById(Mockito.<CrmReceivableDO>any())).thenReturn(1);
 
             receivableService.updateReceivableAuditStatus(RECEIVABLE_ID, 4);
 
-            // 当前会失败（存为 4 而不是 40），D2-APR-01 修复后应 pass
             verify(receivableMapper).updateById(Mockito.<CrmReceivableDO>argThat(do_ -> {
                 Integer status = do_.getAuditStatus();
-                // 当前 bug: 值为 4 而不是 40; D2-APR-01 修复后应为 40
-                return status != null && (status == 40 || status == 4);
+                assertEquals(CrmAuditStatusEnum.CANCEL.getStatus(), status,
+                        "V1.5 §11.2: BPM CANCEL(4) 必须映射为 CRM 40，不得为 4");
+                return true;
             }));
         }
     }
