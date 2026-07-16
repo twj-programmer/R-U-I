@@ -4,6 +4,7 @@ CREATE PROCEDURE IF NOT EXISTS rollback_business_lose_reason_dict()
 BEGIN
     DECLARE column_exists INT DEFAULT 0;
     DECLARE ref_count INT DEFAULT 0;
+    DECLARE error_msg VARCHAR(255);
 
     SELECT COUNT(*) INTO column_exists
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -27,8 +28,9 @@ BEGIN
         DELETE FROM `system_dict_data` WHERE `dict_type` = 'crm_business_lose_reason';
         DELETE FROM `system_dict_type` WHERE `type` = 'crm_business_lose_reason';
     ELSE
+        SET error_msg = CONCAT('Rollback failed: Found ', ref_count, ' business records referencing lose reason codes');
         SELECT CONCAT('ROLLBACK ABORTED: Found ', ref_count, ' business records referencing lose reason codes') AS rollback_status;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = CONCAT('Rollback failed: Found ', ref_count, ' business records referencing lose reason codes');
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     END IF;
 END$$
 
