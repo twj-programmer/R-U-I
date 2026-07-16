@@ -1,6 +1,6 @@
 package com.meession.etm.module.crm.dal.dataobject.customer;
 
-import com.meession.etm.framework.tenant.core.db.TenantBaseDO;
+import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
 import com.meession.etm.module.crm.enums.DictTypeConstants;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -15,14 +15,14 @@ import java.time.LocalDateTime;
  * @author Wanwan
  */
 @TableName(value = "crm_customer")
-@KeySequence("crm_customer_seq")
+@KeySequence("crm_customer_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrmCustomerDO extends TenantBaseDO {
+public class CrmCustomerDO extends BaseDO {
 
     /**
      * 编号

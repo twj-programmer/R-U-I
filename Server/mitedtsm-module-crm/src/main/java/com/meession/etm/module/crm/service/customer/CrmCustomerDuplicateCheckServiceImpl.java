@@ -1,7 +1,6 @@
 package com.meession.etm.module.crm.service.customer;
 
 import com.meession.etm.framework.mybatis.core.query.LambdaQueryWrapperX;
-import com.meession.etm.framework.tenant.core.context.TenantContextHolder;
 import com.meession.etm.module.crm.controller.admin.customer.vo.customer.CrmCustomerDuplicateCheckRespVO;
 import com.meession.etm.module.crm.controller.admin.customer.vo.customer.CrmCustomerDuplicateItemVO;
 import com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerDO;
@@ -49,20 +48,22 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
 
     private List<CrmCustomerDO> findCandidateCustomers(CrmCustomerDuplicateCheckBO checkBO) {
         LambdaQueryWrapperX<CrmCustomerDO> query = new LambdaQueryWrapperX<>();
-        query.eq(CrmCustomerDO::getTenantId, TenantContextHolder.getTenantId());
         query.neIfPresent(CrmCustomerDO::getId, checkBO.getExcludeId());
-        query.eq(CrmCustomerDO::getDeleted, 0);
+        query.eq(CrmCustomerDO::getDeleted, false);
 
-        boolean hasName = checkBO.getName() != null && !checkBO.getName().isEmpty();
-        boolean hasMobile = checkBO.getMobile() != null && !checkBO.getMobile().isEmpty();
+        String normalizedName = normalizeName(checkBO.getName());
+        String normalizedMobile = normalizeMobile(checkBO.getMobile());
+
+        boolean hasName = normalizedName != null && !normalizedName.isEmpty();
+        boolean hasMobile = normalizedMobile != null && !normalizedMobile.isEmpty();
 
         if (hasName && hasMobile) {
-            query.and(i -> i.like(CrmCustomerDO::getName, checkBO.getName())
-                    .or().eq(CrmCustomerDO::getMobile, checkBO.getMobile()));
+            query.and(i -> i.like(CrmCustomerDO::getName, normalizedName)
+                    .or().eq(CrmCustomerDO::getMobile, normalizedMobile));
         } else if (hasName) {
-            query.like(CrmCustomerDO::getName, checkBO.getName());
+            query.like(CrmCustomerDO::getName, normalizedName);
         } else if (hasMobile) {
-            query.eq(CrmCustomerDO::getMobile, checkBO.getMobile());
+            query.eq(CrmCustomerDO::getMobile, normalizedMobile);
         }
 
         return customerMapper.selectList(query);
@@ -77,13 +78,14 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         String candidateNormalizedName = normalizeName(customer.getName());
         String candidateNormalizedMobile = normalizeMobile(customer.getMobile());
 
-        BigDecimal nameSimilarity = calculateLevenshteinSimilarityAsBigDecimal(normalizedName, candidateNormalizedName);
+        double rawSimilarity = calculateLevenshteinSimilarity(normalizedName, candidateNormalizedName);
+        BigDecimal nameSimilarity = BigDecimal.valueOf(rawSimilarity).setScale(2, java.math.RoundingMode.HALF_UP);
         item.setSimilarity(nameSimilarity);
 
         if (normalizedMobile != null && !normalizedMobile.isEmpty() 
                 && candidateNormalizedMobile != null && candidateNormalizedMobile.equals(normalizedMobile)) {
             item.setMatchType("STRONG");
-        } else if (nameSimilarity.compareTo(BigDecimal.valueOf(0.80)) >= 0) {
+        } else if (rawSimilarity >= 0.80) {
             item.setMatchType("SUSPECT");
         }
 
