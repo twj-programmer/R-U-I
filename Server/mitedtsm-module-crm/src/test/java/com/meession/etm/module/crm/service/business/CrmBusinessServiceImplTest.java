@@ -1,8 +1,9 @@
 // 23计科4班 黄金戈
 package com.meession.etm.module.crm.service.business;
 
-import com.meession.etm.framework.common.biz.system.dict.dto.DictDataRespDTO;
-import com.meession.etm.module.crm.controller.admin.business.vo.business.*;
+import com.meession.etm.framework.common.exception.ServiceException;
+import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessSaveReqVO;
+import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessUpdateStatusReqVO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessProductDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessStatusDO;
@@ -17,6 +18,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -24,10 +26,19 @@ import java.util.List;
 import java.util.Set;
 
 import static com.meession.etm.framework.test.core.util.AssertUtils.assertServiceException;
-import static com.meession.etm.module.crm.enums.ErrorCodeConstants.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static com.meession.etm.module.crm.enums.ErrorCodeConstants.BUSINESS_UPDATE_STATUS_FAIL_END_STATUS;
+import static com.meession.etm.module.crm.enums.ErrorCodeConstants.BUSINESS_UPDATE_VERSION_CONFLICT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class CrmBusinessServiceImplTest {
 
@@ -66,193 +77,124 @@ class CrmBusinessServiceImplTest {
     }
 
     @Test
-    void updateStatus_shouldAllowForwardJumpAndIncreaseVersion() {
-        CrmBusinessDO business = activeBusiness();
-        when(businessMapper.selectById(1L)).thenReturn(business);
-        when(statusService.validateBusinessStatus(10L, 13L))
-                .thenReturn(new CrmBusinessStatusDO().setId(13L).setTypeId(10L).setName("报价").setSort(3));
-        when(statusService.getBusinessStatus(11L))
-                .thenReturn(new CrmBusinessStatusDO().setId(11L).setTypeId(10L).setName("需求").setSort(1));
+    void updateStatus_shouldAllowForwardStage() {
+        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
+        when(statusService.getBusinessStatus(11L)).thenReturn(status(11L, 1));
+        when(statusService.validateBusinessStatus(10L, 13L)).thenReturn(status(13L, 3));
         when(businessMapper.updateStageByVersion(1L, 2, 13L)).thenReturn(1);
 
-        CrmBusinessStatusUpdateRespVO result = service.updateBusinessStatus(
-                new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setStatusId(13L));
+        service.updateBusinessStatus(new CrmBusinessUpdateStatusReqVO()
+                .setId(1L).setVersion(2).setStatusId(13L));
 
-        assertEquals(3, result.getVersion());
-        assertEquals(13L, result.getStatusId());
         verify(businessMapper).updateStageByVersion(1L, 2, 13L);
     }
 
     @Test
     void updateStatus_shouldRejectBackwardStage() {
         when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
-        when(statusService.validateBusinessStatus(10L, 12L))
-                .thenReturn(new CrmBusinessStatusDO().setId(12L).setSort(0));
-        when(statusService.getBusinessStatus(11L))
-                .thenReturn(new CrmBusinessStatusDO().setId(11L).setTypeId(10L).setSort(1));
+        when(statusService.getBusinessStatus(11L)).thenReturn(status(11L, 1));
+        when(statusService.validateBusinessStatus(10L, 12L)).thenReturn(status(12L, 0));
 
-        assertServiceException(() -> service.updateBusinessStatus(
-                new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setStatusId(12L)),
-                BUSINESS_STATUS_TRANSITION_NOT_ALLOWED);
+        ServiceException exception = assertThrows(ServiceException.class, () -> service.updateBusinessStatus(
+                new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setStatusId(12L)));
+        assertEquals(400, exception.getCode());
         verify(businessMapper, never()).updateStageByVersion(anyLong(), anyInt(), anyLong());
     }
 
     @Test
-    void updateStatus_shouldRejectMissingStatusTypeWithoutNullPointer() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness().setStatusTypeId(null));
-        when(statusService.getBusinessStatus(11L))
-                .thenReturn(new CrmBusinessStatusDO().setId(11L).setTypeId(10L).setSort(1));
-
-        assertServiceException(() -> service.updateBusinessStatus(
-                        new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setStatusId(13L)),
-                BUSINESS_STATUS_TRANSITION_NOT_ALLOWED);
-        verify(businessMapper, never()).updateStageByVersion(anyLong(), anyInt(), anyLong());
-    }
-
-    @Test
-    void updateStatus_shouldValidateLoseReasonAndKeepLastStage() {
+    void updateStatus_shouldUseFixedDictValidationBoundary() {
         when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
-        DictDataRespDTO reason = new DictDataRespDTO();
-        reason.setValue("NO_BUDGET");
-        reason.setStatus(0);
-        when(dictDataApi.getDictDataList("crm_business_lose_reason")).thenReturn(List.of(reason));
-        when(businessMapper.updateEndStatusByVersion(1L, 2, 2, "NO_BUDGET", "预算取消")).thenReturn(1);
-        when(statusService.getBusinessStatus(11L))
-                .thenReturn(new CrmBusinessStatusDO().setId(11L).setTypeId(10L).setName("需求").setSort(1));
+        when(statusService.getBusinessStatus(11L)).thenReturn(status(11L, 1));
+        when(businessMapper.updateEndStatusByVersion(1L, 2, 2, "BUDGET", "预算不足")).thenReturn(1);
 
-        CrmBusinessStatusUpdateRespVO result = service.updateBusinessStatus(
-                new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setEndStatus(2)
-                        .setLoseReasonCode(" NO_BUDGET ").setEndRemark(" 预算取消 "));
+        service.updateBusinessStatus(new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2)
+                .setEndStatus(2).setLoseReasonCode(" BUDGET ").setEndRemark(" 预算不足 "));
 
-        assertEquals(11L, result.getStatusId());
-        assertEquals("NO_BUDGET", result.getLoseReasonCode());
-        verify(businessMapper).updateEndStatusByVersion(1L, 2, 2, "NO_BUDGET", "预算取消");
+        verify(dictDataApi).validateDictDataList("crm_business_lose_reason", List.of("BUDGET"));
+        verify(businessMapper).updateEndStatusByVersion(1L, 2, 2, "BUDGET", "预算不足");
     }
 
     @Test
-    void updateStatus_shouldRejectUnknownLoseReason() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
-        when(statusService.getBusinessStatus(11L))
-                .thenReturn(new CrmBusinessStatusDO().setId(11L).setTypeId(10L).setName("需求").setSort(1));
-        when(dictDataApi.getDictDataList("crm_business_lose_reason")).thenReturn(List.of());
-
-        assertServiceException(() -> service.updateBusinessStatus(
-                new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setEndStatus(2)
-                .setLoseReasonCode("UNKNOWN")), BUSINESS_LOSE_REASON_INVALID);
-    }
-
-    @Test
-    void updateStatus_shouldRejectStaleVersion() {
-        CrmBusinessDO current = activeBusiness();
-        CrmBusinessDO latest = activeBusiness().setVersion(3);
-        when(businessMapper.selectById(1L)).thenReturn(current, latest);
-        when(statusService.getBusinessStatus(11L))
-                .thenReturn(new CrmBusinessStatusDO().setId(11L).setTypeId(10L).setName("需求").setSort(1));
-        when(statusService.validateBusinessStatus(10L, 13L))
-                .thenReturn(new CrmBusinessStatusDO().setId(13L).setTypeId(10L).setName("报价").setSort(3));
+    void updateStatus_shouldReturnFrozenVersionConflictCode() {
+        when(businessMapper.selectById(1L)).thenReturn(activeBusiness(), activeBusiness().setVersion(3));
+        when(statusService.getBusinessStatus(11L)).thenReturn(status(11L, 1));
+        when(statusService.validateBusinessStatus(10L, 13L)).thenReturn(status(13L, 3));
         when(businessMapper.updateStageByVersion(1L, 2, 13L)).thenReturn(0);
 
         assertServiceException(() -> service.updateBusinessStatus(
                 new CrmBusinessUpdateStatusReqVO().setId(1L).setVersion(2).setStatusId(13L)),
-                BUSINESS_VERSION_CONFLICT);
+                BUSINESS_UPDATE_VERSION_CONFLICT);
     }
 
     @Test
-    void updateQuotation_shouldUseServerSnapshotAndRoundAmounts() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
-        when(businessProductMapper.selectListByBusinessId(1L)).thenReturn(List.of());
-        CrmProductDO product = new CrmProductDO().setId(100L).setName("软件服务")
-                .setPrice(new BigDecimal("120.00")).setStatus(1);
-        when(productService.getProductList(anyCollection())).thenReturn(List.of(product));
-        when(businessMapper.updateQuotationByVersion(eq(1L), eq(2), any(), any(), any())).thenReturn(1);
-
-        CrmBusinessProductReqVO item = new CrmBusinessProductReqVO().setProductId(100L)
-                .setBusinessPrice(new BigDecimal("100.00")).setCount(new BigDecimal("3"));
-        CrmBusinessQuotationRespVO result = service.updateBusinessQuotation(
-                new CrmBusinessUpdateQuotationReqVO().setId(1L).setVersion(2)
-                        .setDiscountPercent(new BigDecimal("20")).setProducts(List.of(item)));
-
-        assertEquals(0, new BigDecimal("300.00").compareTo(result.getTotalProductPrice()));
-        assertEquals(0, new BigDecimal("60.00").compareTo(result.getDiscountAmount()));
-        assertEquals(0, new BigDecimal("240.00").compareTo(result.getTotalPrice()));
-        assertEquals(0, new BigDecimal("120.00").compareTo(result.getProducts().get(0).getProductPrice()));
-        verify(businessProductMapper).insertBatch(anyList());
-    }
-
-    @Test
-    void updateQuotation_shouldRejectDuplicateProductsBeforeWrite() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
-        CrmBusinessProductReqVO first = new CrmBusinessProductReqVO().setProductId(100L)
-                .setBusinessPrice(BigDecimal.ONE).setCount(BigDecimal.ONE);
-        CrmBusinessProductReqVO second = new CrmBusinessProductReqVO().setProductId(100L)
-                .setBusinessPrice(BigDecimal.TEN).setCount(BigDecimal.ONE);
-
-        assertServiceException(() -> service.updateBusinessQuotation(
-                new CrmBusinessUpdateQuotationReqVO().setId(1L).setVersion(2)
-                        .setDiscountPercent(BigDecimal.ZERO).setProducts(List.of(first, second))),
-                BUSINESS_QUOTE_PRODUCT_DUPLICATE);
-        verify(businessMapper, never()).updateQuotationByVersion(anyLong(), anyInt(), any(), any(), any());
-    }
-
-    @Test
-    void updateQuotation_shouldRejectAmountWithMoreThanEighteenIntegerDigits() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
-        when(businessProductMapper.selectListByBusinessId(1L)).thenReturn(List.of());
-        CrmProductDO product = new CrmProductDO().setId(100L).setName("软件服务")
-                .setPrice(new BigDecimal("120.00")).setStatus(1);
-        when(productService.getProductList(anyCollection())).thenReturn(List.of(product));
-        CrmBusinessProductReqVO item = new CrmBusinessProductReqVO().setProductId(100L)
-                .setBusinessPrice(new BigDecimal("1000000000000000000.00")).setCount(BigDecimal.ONE);
-
-        assertServiceException(() -> service.updateBusinessQuotation(
-                        new CrmBusinessUpdateQuotationReqVO().setId(1L).setVersion(2)
-                                .setDiscountPercent(BigDecimal.ZERO).setProducts(List.of(item))),
-                BUSINESS_QUOTE_AMOUNT_INVALID);
-        verify(businessMapper, never()).updateQuotationByVersion(anyLong(), anyInt(), any(), any(), any());
-    }
-
-    @Test
-    void updateQuotation_shouldKeepDisabledProductWhenAmountsAreUnchanged() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
-        CrmBusinessProductDO old = new CrmBusinessProductDO().setBusinessId(1L).setProductId(100L)
-                .setProductPrice(new BigDecimal("120.00")).setBusinessPrice(new BigDecimal("100.00"))
-                .setCount(new BigDecimal("3.000")).setTotalPrice(new BigDecimal("300.00"));
-        when(businessProductMapper.selectListByBusinessId(1L)).thenReturn(List.of(old));
-        CrmProductDO disabled = new CrmProductDO().setId(100L).setName("停用产品").setStatus(0);
-        when(productService.getProductList(anyCollection())).thenReturn(List.of(disabled));
-        when(businessMapper.updateQuotationByVersion(eq(1L), eq(2), any(), any(), any())).thenReturn(1);
-
-        CrmBusinessProductReqVO item = new CrmBusinessProductReqVO().setProductId(100L)
-                .setBusinessPrice(new BigDecimal("100.0")).setCount(new BigDecimal("3"));
-        CrmBusinessQuotationRespVO result = service.updateBusinessQuotation(
-                new CrmBusinessUpdateQuotationReqVO().setId(1L).setVersion(2)
-                        .setDiscountPercent(BigDecimal.ZERO).setProducts(List.of(item)));
-
-        assertEquals(0, new BigDecimal("120.00").compareTo(result.getProducts().get(0).getProductPrice()));
-    }
-
-    @Test
-    void updateQuotation_shouldRejectTerminalBusiness() {
-        when(businessMapper.selectById(1L)).thenReturn(activeBusiness().setEndStatus(1));
-        assertServiceException(() -> service.updateBusinessQuotation(
-                new CrmBusinessUpdateQuotationReqVO().setId(1L).setVersion(2)
-                        .setDiscountPercent(BigDecimal.ZERO).setProducts(List.of())),
-                BUSINESS_UPDATE_STATUS_FAIL_END_STATUS);
-    }
-
-    @Test
-    void updateBusiness_shouldRejectTerminalBusiness() {
+    void updateBusiness_shouldRejectTerminalBusinessBeforeProductWrite() {
         when(businessMapper.selectById(1L)).thenReturn(activeBusiness().setEndStatus(1));
 
-        assertServiceException(() -> service.updateBusiness(
-                        new CrmBusinessUpdateReqVO().setId(1L).setVersion(2)),
+        assertServiceException(() -> service.updateBusiness(new CrmBusinessSaveReqVO().setId(1L)),
                 BUSINESS_UPDATE_STATUS_FAIL_END_STATUS);
-        verify(businessMapper, never()).updateBasicByVersion(any(), anyInt());
+        verify(businessProductMapper, never()).insertBatch(any());
+    }
+
+    @Test
+    void updateBusiness_shouldRequireVersionOnExistingBoundary() {
+        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
+
+        ServiceException exception = assertThrows(ServiceException.class, () -> service.updateBusiness(
+                new CrmBusinessSaveReqVO().setId(1L)));
+
+        assertEquals(400, exception.getCode());
+        verify(businessMapper, never()).updateBusinessByVersion(any(), anyInt());
+    }
+
+    @Test
+    void updateBusiness_shouldReturnFrozenVersionConflictCode() {
+        when(businessMapper.selectById(1L)).thenReturn(activeBusiness(), activeBusiness().setVersion(3));
+        when(businessMapper.updateBusinessByVersion(any(), eq(2))).thenReturn(0);
+
+        CrmBusinessSaveReqVO reqVO = new CrmBusinessSaveReqVO().setId(1L).setVersion(2)
+                .setDiscountPercent(BigDecimal.ZERO).setProducts(List.of());
+
+        assertServiceException(() -> service.updateBusiness(reqVO), BUSINESS_UPDATE_VERSION_CONFLICT);
+    }
+
+    @Test
+    void updateBusiness_shouldKeepProductRowAndServerSnapshotOnExistingBoundary() {
+        CrmBusinessProductDO oldProduct = new CrmBusinessProductDO().setId(101L).setBusinessId(1L)
+                .setProductId(201L).setProductPrice(new BigDecimal("50.00"))
+                .setBusinessPrice(new BigDecimal("9.00")).setCount(BigDecimal.ONE);
+        when(businessMapper.selectById(1L)).thenReturn(activeBusiness());
+        when(businessProductMapper.selectListByBusinessId(1L)).thenReturn(List.of(oldProduct));
+        when(productService.getProductList(Set.of(201L))).thenReturn(List.of(new CrmProductDO()
+                .setId(201L).setName("产品 A").setPrice(new BigDecimal("60.00")).setStatus(1)));
+        when(businessMapper.updateBusinessByVersion(any(), eq(2))).thenReturn(1);
+
+        CrmBusinessSaveReqVO.BusinessProduct product = new CrmBusinessSaveReqVO.BusinessProduct()
+                .setId(101L).setProductId(201L).setProductPrice(new BigDecimal("999.00"))
+                .setBusinessPrice(new BigDecimal("10.00")).setCount(new BigDecimal("2.000"));
+        service.updateBusiness(new CrmBusinessSaveReqVO().setId(1L).setVersion(2)
+                .setDiscountPercent(new BigDecimal("10.00")).setProducts(List.of(product)));
+
+        ArgumentCaptor<CrmBusinessDO> businessCaptor = ArgumentCaptor.forClass(CrmBusinessDO.class);
+        verify(businessMapper).updateBusinessByVersion(businessCaptor.capture(), eq(2));
+        assertEquals(new BigDecimal("20.00"), businessCaptor.getValue().getTotalProductPrice());
+        assertEquals(new BigDecimal("18.00"), businessCaptor.getValue().getTotalPrice());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<CrmBusinessProductDO>> productCaptor = ArgumentCaptor.forClass(List.class);
+        verify(businessProductMapper).updateBatch(productCaptor.capture());
+        CrmBusinessProductDO savedProduct = productCaptor.getValue().get(0);
+        assertEquals(101L, savedProduct.getId());
+        assertEquals(new BigDecimal("50.00"), savedProduct.getProductPrice());
+        assertEquals(new BigDecimal("20.00"), savedProduct.getTotalPrice());
     }
 
     private CrmBusinessDO activeBusiness() {
         return new CrmBusinessDO().setId(1L).setName("重点商机").setStatusTypeId(10L)
                 .setStatusId(11L).setVersion(2);
+    }
+
+    private CrmBusinessStatusDO status(Long id, int sort) {
+        return new CrmBusinessStatusDO().setId(id).setTypeId(10L).setName("阶段" + id).setSort(sort);
     }
 
     private static void assertHasMessage(Set<? extends ConstraintViolation<?>> violations, String expected) {

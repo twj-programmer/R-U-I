@@ -45,33 +45,19 @@ export interface BusinessVO {
   products?: BusinessProductVO[]
 }
 
-export interface BusinessProductReqVO {
-  productId: number
-  businessPrice: number
-  count: number
-}
-
-export interface BusinessCreateReqVO {
+export interface BusinessSaveReqVO {
+  id?: number
+  version?: number
   name: string
   customerId: number
-  ownerUserId: number
-  statusTypeId: number
+  contactNextTime?: Date
+  ownerUserId?: number
+  statusTypeId?: number
   dealTime?: Date
   discountPercent: number
   remark?: string
   contactId?: number
-  products: BusinessProductReqVO[]
-}
-
-export interface BusinessUpdateReqVO {
-  id: number
-  version: number
-  name: string
-  customerId: number
-  contactNextTime?: Date
-  dealTime?: Date
-  remark?: string
-  contactId?: number
+  products: BusinessProductVO[]
 }
 
 export interface BusinessUpdateStatusReqVO {
@@ -81,27 +67,6 @@ export interface BusinessUpdateStatusReqVO {
   endStatus?: number
   loseReasonCode?: string
   endRemark?: string
-}
-
-export interface BusinessStatusUpdateRespVO extends BusinessUpdateStatusReqVO {
-  version: number
-}
-
-export interface BusinessUpdateQuotationReqVO {
-  id: number
-  version: number
-  discountPercent: number
-  products: BusinessProductReqVO[]
-}
-
-export interface BusinessQuotationRespVO {
-  id: number
-  version: number
-  totalProductPrice: number
-  discountPercent: number
-  discountAmount: number
-  totalPrice: number
-  products: BusinessProductVO[]
 }
 
 export const getBusinessPage = async (params) => {
@@ -120,24 +85,16 @@ export const getSimpleBusinessList = async () => {
   return await request.get({ url: `/crm/business/simple-all-list` })
 }
 
-export const createBusiness = async (data: BusinessCreateReqVO) => {
+export const createBusiness = async (data: BusinessSaveReqVO) => {
   return await request.post({ url: `/crm/business/create`, data })
 }
 
-export const updateBusiness = async (data: BusinessUpdateReqVO) => {
+export const updateBusiness = async (data: BusinessSaveReqVO) => {
   return await request.put({ url: `/crm/business/update`, data })
 }
 
-export const updateBusinessStatus = async (
-  data: BusinessUpdateStatusReqVO
-): Promise<BusinessStatusUpdateRespVO> => {
+export const updateBusinessStatus = async (data: BusinessUpdateStatusReqVO) => {
   return await request.put({ url: `/crm/business/update-status`, data })
-}
-
-export const updateBusinessQuotation = async (
-  data: BusinessUpdateQuotationReqVO
-): Promise<BusinessQuotationRespVO> => {
-  return await request.put({ url: `/crm/business/update-quotation`, data })
 }
 
 export const deleteBusiness = async (id: number) => {

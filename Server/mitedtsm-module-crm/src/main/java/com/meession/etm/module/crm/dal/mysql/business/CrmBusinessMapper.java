@@ -15,7 +15,6 @@ import org.apache.ibatis.annotations.Mapper;
 
 import java.util.Collection;
 import java.util.List;
-import java.math.BigDecimal;
 
 /**
  * 商机 Mapper
@@ -25,7 +24,8 @@ import java.math.BigDecimal;
 @Mapper
 public interface CrmBusinessMapper extends BaseMapperX<CrmBusinessDO> {
 
-    default int updateBasicByVersion(CrmBusinessDO updateObj, Integer version) {
+    default int updateBusinessByVersion(CrmBusinessDO updateObj, Integer version) {
+        updateObj.setVersion(null);
         return update(updateObj, new LambdaUpdateWrapper<CrmBusinessDO>()
                 .eq(CrmBusinessDO::getId, updateObj.getId())
                 .eq(CrmBusinessDO::getVersion, version)
@@ -51,18 +51,6 @@ public interface CrmBusinessMapper extends BaseMapperX<CrmBusinessDO> {
                 .set(CrmBusinessDO::getEndStatus, endStatus)
                 .set(CrmBusinessDO::getLoseReasonCode, loseReasonCode)
                 .set(CrmBusinessDO::getEndRemark, endRemark)
-                .setSql("version = version + 1"));
-    }
-
-    default int updateQuotationByVersion(Long id, Integer version, BigDecimal totalProductPrice,
-                                         BigDecimal discountPercent, BigDecimal totalPrice) {
-        return update(new LambdaUpdateWrapper<CrmBusinessDO>()
-                .eq(CrmBusinessDO::getId, id)
-                .eq(CrmBusinessDO::getVersion, version)
-                .isNull(CrmBusinessDO::getEndStatus)
-                .set(CrmBusinessDO::getTotalProductPrice, totalProductPrice)
-                .set(CrmBusinessDO::getDiscountPercent, discountPercent)
-                .set(CrmBusinessDO::getTotalPrice, totalPrice)
                 .setSql("version = version + 1"));
     }
 

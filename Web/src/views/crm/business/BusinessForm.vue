@@ -9,13 +9,6 @@
       v-loading="formLoading"
       :disabled="isTerminal"
     >
-      <el-alert
-        v-if="formType === 'update'"
-        title="基础资料与报价需分别保存，两个按钮不会连续调用接口"
-        type="info"
-        :closable="false"
-        class="mb-4"
-      />
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item :label="t('crm.business.name')" prop="name">
@@ -148,22 +141,9 @@
       </el-row>
     </el-form>
     <template #footer>
-      <el-button
-        v-if="formType === 'create'"
-        @click="createForm"
-        type="primary"
-        :disabled="formLoading"
-      >
+      <el-button v-if="!isTerminal" @click="submitForm" type="primary" :disabled="formLoading">
         {{ t('common.confirm') }}
       </el-button>
-      <template v-else-if="!isTerminal">
-        <el-button @click="saveBasicForm" type="primary" :disabled="formLoading">
-          保存基础资料
-        </el-button>
-        <el-button @click="saveQuotation" type="success" :disabled="formLoading">
-          保存报价
-        </el-button>
-      </template>
       <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
     </template>
   </Dialog>
@@ -285,14 +265,16 @@ const open = async (type: 'create' | 'update', id?: number, customerId?: number,
 defineExpose({ open })
 
 const emit = defineEmits(['success'])
-const buildProductPayload = (): BusinessApi.BusinessProductReqVO[] =>
-  formData.value.products.map(({ productId, businessPrice, count }) => ({
+const buildProductPayload = (): BusinessApi.BusinessProductVO[] =>
+  formData.value.products.map(({ id, productId, productPrice, businessPrice, count }) => ({
+    id,
     productId,
+    productPrice,
     businessPrice,
     count
   }))
 
-const createForm = async () => {
+const submitForm = async () => {
   if (!formRef.value) return
   const valid = await formRef.value.validate()
   if (!valid) return
@@ -300,73 +282,28 @@ const createForm = async () => {
   const data = formData.value
   formLoading.value = true
   try {
-    await BusinessApi.createBusiness({
+    const payload: BusinessApi.BusinessSaveReqVO = {
+      id: data.id,
+      version: data.version,
       name: data.name!,
       customerId: data.customerId!,
-      ownerUserId: data.ownerUserId!,
-      statusTypeId: data.statusTypeId!,
+      contactNextTime: data.contactNextTime,
+      ownerUserId: data.ownerUserId,
+      statusTypeId: data.statusTypeId,
       dealTime: data.dealTime,
       discountPercent: data.discountPercent,
       remark: data.remark,
       contactId: data.contactId,
       products: buildProductPayload()
-    })
-    message.success(t('common.createSuccess'))
+    }
+    if (formType.value === 'create') {
+      await BusinessApi.createBusiness(payload)
+      message.success(t('common.createSuccess'))
+    } else {
+      await BusinessApi.updateBusiness(payload)
+      message.success(t('common.updateSuccess'))
+    }
     dialogVisible.value = false
-    emit('success')
-  } finally {
-    formLoading.value = false
-  }
-}
-
-const saveBasicForm = async () => {
-  const id = formData.value.id
-  const version = formData.value.version
-  if (!formRef.value || !id || version === undefined) return
-  const valid = await formRef.value.validate()
-  if (!valid) return
-  const data = formData.value
-  formLoading.value = true
-  try {
-    data.version = await BusinessApi.updateBusiness({
-      id,
-      version,
-      name: data.name!,
-      customerId: data.customerId!,
-      contactNextTime: data.contactNextTime,
-      dealTime: data.dealTime,
-      remark: data.remark,
-      contactId: data.contactId
-    })
-    message.success(t('common.updateSuccess'))
-    emit('success')
-  } finally {
-    formLoading.value = false
-  }
-}
-
-const saveQuotation = async () => {
-  const data = formData.value
-  if (!data.id || data.version === undefined || isTerminal.value) return
-  await productFormRef.value?.validate()
-  formLoading.value = true
-  try {
-    const previousProducts = new Map(data.products.map((item) => [item.productId, item]))
-    const result = await BusinessApi.updateBusinessQuotation({
-      id: data.id,
-      version: data.version,
-      discountPercent: data.discountPercent,
-      products: buildProductPayload()
-    })
-    data.version = result.version
-    data.totalProductPrice = result.totalProductPrice
-    data.discountPercent = result.discountPercent
-    data.totalPrice = result.totalPrice
-    data.products = result.products.map((item) => ({
-      ...previousProducts.get(item.productId),
-      ...item
-    }))
-    message.success('报价保存成功')
     emit('success')
   } finally {
     formLoading.value = false

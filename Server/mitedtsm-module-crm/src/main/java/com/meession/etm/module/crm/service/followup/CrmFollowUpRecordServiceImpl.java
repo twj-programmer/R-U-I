@@ -27,12 +27,10 @@ import org.springframework.validation.annotation.Validated;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.HashSet;
 
 import static com.meession.etm.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.meession.etm.module.crm.enums.ErrorCodeConstants.FOLLOW_UP_RECORD_DELETE_DENIED;
 import static com.meession.etm.module.crm.enums.ErrorCodeConstants.FOLLOW_UP_RECORD_NOT_EXISTS;
-import static com.meession.etm.module.crm.enums.ErrorCodeConstants.*;
 
 /**
  * 跟进记录 Service 实现类
@@ -69,15 +67,11 @@ public class CrmFollowUpRecordServiceImpl implements CrmFollowUpRecordService {
     @Transactional(rollbackFor = Exception.class)
     @CrmPermission(bizTypeValue = "#createReqVO.bizType", bizId = "#createReqVO.bizId", level = CrmPermissionLevelEnum.WRITE)
     public Long createFollowUpRecord(CrmFollowUpRecordSaveReqVO createReqVO) {
-        // 1. 先校验主业务对象及批量关联对象，避免插入孤立跟进记录
-        validateFollowUpBiz(createReqVO.getBizType(), createReqVO.getBizId());
-        validateRelationIds(createReqVO);
-
-        // 2. 创建跟进记录
+        // 1. 创建跟进记录
         CrmFollowUpRecordDO record = BeanUtils.toBean(createReqVO, CrmFollowUpRecordDO.class);
         crmFollowUpRecordMapper.insert(record);
 
-        // 3. 更新 bizId 对应的记录
+        // 2. 更新 bizId 对应的记录
         if (ObjUtil.equal(CrmBizTypeEnum.CRM_CUSTOMER.getType(), record.getBizType())) { // 更新客户跟进信息
             customerService.updateCustomerFollowUp(record.getBizId(), record.getNextTime(), record.getContent());
         }
@@ -94,54 +88,15 @@ public class CrmFollowUpRecordServiceImpl implements CrmFollowUpRecordService {
             contractService.updateContractFollowUp(record.getBizId(), record.getNextTime(), record.getContent());
         }
 
-        // 4.1 更新 contactIds 对应的记录，只更新 nextTime
+        // 3.1 更新 contactIds 对应的记录，只更新 nextTime
         if (CollUtil.isNotEmpty(createReqVO.getContactIds())) {
             contactService.updateContactContactNextTime(createReqVO.getContactIds(), createReqVO.getNextTime());
         }
-        // 4.2 需要更新 businessIds 对应的记录，只更新 nextTime
+        // 3.2 需要更新 businessIds 对应的记录，只更新 nextTime
         if (CollUtil.isNotEmpty(createReqVO.getBusinessIds())) {
             businessService.updateBusinessContactNextTime(createReqVO.getBusinessIds(), createReqVO.getNextTime());
         }
         return record.getId();
-    }
-
-    private void validateFollowUpBiz(Integer bizType, Long bizId) {
-        if (ObjUtil.equal(CrmBizTypeEnum.CRM_CUSTOMER.getType(), bizType)) {
-            customerService.validateCustomer(bizId);
-            return;
-        }
-        if (ObjUtil.equal(CrmBizTypeEnum.CRM_BUSINESS.getType(), bizType)) {
-            businessService.validateBusiness(bizId);
-            return;
-        }
-        if (ObjUtil.equal(CrmBizTypeEnum.CRM_CLUE.getType(), bizType)) {
-            if (clueService.getClue(bizId) == null) {
-                throw exception(CLUE_NOT_EXISTS);
-            }
-            return;
-        }
-        if (ObjUtil.equal(CrmBizTypeEnum.CRM_CONTACT.getType(), bizType)) {
-            contactService.validateContact(bizId);
-            return;
-        }
-        if (ObjUtil.equal(CrmBizTypeEnum.CRM_CONTRACT.getType(), bizType)) {
-            contractService.validateContract(bizId);
-            return;
-        }
-        throw exception(FOLLOW_UP_RECORD_BIZ_NOT_SUPPORTED);
-    }
-
-    private void validateRelationIds(CrmFollowUpRecordSaveReqVO reqVO) {
-        if (CollUtil.isNotEmpty(reqVO.getBusinessIds())
-                && businessService.getBusinessList(new HashSet<>(reqVO.getBusinessIds())).size()
-                != new HashSet<>(reqVO.getBusinessIds()).size()) {
-            throw exception(BUSINESS_NOT_EXISTS);
-        }
-        if (CollUtil.isNotEmpty(reqVO.getContactIds())
-                && contactService.getContactList(new HashSet<>(reqVO.getContactIds())).size()
-                != new HashSet<>(reqVO.getContactIds()).size()) {
-            throw exception(CONTACT_NOT_EXISTS);
-        }
     }
 
     @Override

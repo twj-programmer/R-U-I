@@ -2,7 +2,10 @@
 package com.meession.etm.module.crm.service.business;
 
 import com.meession.etm.framework.common.pojo.PageResult;
-import com.meession.etm.module.crm.controller.admin.business.vo.business.*;
+import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessPageReqVO;
+import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessSaveReqVO;
+import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessTransferReqVO;
+import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessUpdateStatusReqVO;
 import com.meession.etm.module.crm.controller.admin.statistics.vo.funnel.CrmStatisticsFunnelReqVO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessDO;
 import com.meession.etm.module.crm.dal.dataobject.business.CrmBusinessProductDO;
@@ -33,14 +36,14 @@ public interface CrmBusinessService {
      * @param userId      用户编号
      * @return 编号
      */
-    Long createBusiness(@Valid CrmBusinessCreateReqVO createReqVO, Long userId);
+    Long createBusiness(@Valid CrmBusinessSaveReqVO createReqVO, Long userId);
 
     /**
      * 更新商机
      *
      * @param updateReqVO 更新信息
      */
-    Integer updateBusiness(@Valid CrmBusinessUpdateReqVO updateReqVO);
+    void updateBusiness(@Valid CrmBusinessSaveReqVO updateReqVO);
 
     /**
      * 更新商机相关跟进信息
@@ -64,12 +67,7 @@ public interface CrmBusinessService {
      *
      * @param reqVO 更新请求
      */
-    CrmBusinessStatusUpdateRespVO updateBusinessStatus(@Valid CrmBusinessUpdateStatusReqVO reqVO);
-
-    /**
-     * 更新商机报价并返回服务端金额快照。
-     */
-    CrmBusinessQuotationRespVO updateBusinessQuotation(@Valid CrmBusinessUpdateQuotationReqVO reqVO);
+    void updateBusinessStatus(@Valid CrmBusinessUpdateStatusReqVO reqVO);
 
     /**
      * 删除商机

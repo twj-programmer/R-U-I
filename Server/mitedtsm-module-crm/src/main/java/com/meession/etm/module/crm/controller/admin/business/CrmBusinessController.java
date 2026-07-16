@@ -73,31 +73,25 @@ public class CrmBusinessController {
     @PostMapping("/create")
     @Operation(summary = "创建商机")
     @PreAuthorize("@ss.hasPermission('crm:business:create')")
-    public CommonResult<Long> createBusiness(@Valid @RequestBody CrmBusinessCreateReqVO createReqVO) {
+    public CommonResult<Long> createBusiness(@Valid @RequestBody CrmBusinessSaveReqVO createReqVO) {
         return success(businessService.createBusiness(createReqVO, getLoginUserId()));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新商机")
     @PreAuthorize("@ss.hasPermission('crm:business:update')")
-    public CommonResult<Integer> updateBusiness(@Valid @RequestBody CrmBusinessUpdateReqVO updateReqVO) {
-        return success(businessService.updateBusiness(updateReqVO));
+    public CommonResult<Boolean> updateBusiness(@Valid @RequestBody CrmBusinessSaveReqVO updateReqVO) {
+        businessService.updateBusiness(updateReqVO);
+        return success(true);
     }
 
     @PutMapping("/update-status")
     @Operation(summary = "更新商机状态")
     @PreAuthorize("@ss.hasPermission('crm:business:update')")
-    public CommonResult<CrmBusinessStatusUpdateRespVO> updateBusinessStatus(
+    public CommonResult<Boolean> updateBusinessStatus(
             @Valid @RequestBody CrmBusinessUpdateStatusReqVO updateStatusReqVO) {
-        return success(businessService.updateBusinessStatus(updateStatusReqVO));
-    }
-
-    @PutMapping("/update-quotation")
-    @Operation(summary = "更新商机报价")
-    @PreAuthorize("@ss.hasPermission('crm:business:update')")
-    public CommonResult<CrmBusinessQuotationRespVO> updateBusinessQuotation(
-            @Valid @RequestBody CrmBusinessUpdateQuotationReqVO reqVO) {
-        return success(businessService.updateBusinessQuotation(reqVO));
+        businessService.updateBusinessStatus(updateStatusReqVO);
+        return success(true);
     }
 
     @DeleteMapping("/delete")

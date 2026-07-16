@@ -1,4 +1,3 @@
-// 23计科4班 黄金戈
 package com.meession.etm.module.crm.dal.dataobject.business;
 
 import com.meession.etm.framework.mybatis.core.dataobject.BaseDO;
@@ -6,8 +5,6 @@ import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
-
-import java.math.BigDecimal;
 
 /**
  * CRM 商机状态 DO
@@ -43,7 +40,7 @@ public class CrmBusinessStatusDO extends BaseDO {
     /**
      * 赢单率，百分比
      */
-    private BigDecimal percent;
+    private Integer percent;
     /**
      * 排序
      */
