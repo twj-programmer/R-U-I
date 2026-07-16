@@ -1,5 +1,18 @@
+// 23计科4班 黄金戈
 import request from '@/config/axios'
 import { TransferReqVO } from '@/api/crm/permission'
+
+export interface BusinessProductVO {
+  id?: number
+  productId: number
+  productName?: string
+  productNo?: string
+  productUnit?: number
+  productPrice?: number
+  businessPrice: number
+  count: number
+  totalPrice?: number
+}
 
 export interface BusinessVO {
   id: number
@@ -10,89 +23,135 @@ export interface BusinessVO {
   contactLastTime: Date
   contactNextTime: Date
   ownerUserId: number
-  ownerUserName?: string // 负责人的用户名称
-  ownerUserDept?: string // 负责人的部门名称
+  ownerUserName?: string
+  ownerUserDept?: string
   statusTypeId: number
   statusTypeName?: string
   statusId: number
   statusName?: string
-  endStatus: number
-  endRemark: string
+  endStatus?: number
+  loseReasonCode?: string
+  endRemark?: string
+  version: number
   dealTime: Date
   totalProductPrice: number
   totalPrice: number
   discountPercent: number
   remark: string
-  creator: string // 创建人
-  creatorName?: string // 创建人名称
-  createTime: Date // 创建时间
-  updateTime: Date // 更新时间
-  products?: [
-    {
-      id: number
-      productId: number
-      productName: string
-      productNo: string
-      productUnit: number
-      productPrice: number
-      businessPrice: number
-      count: number
-      totalPrice: number
-    }
-  ]
+  creator: string
+  creatorName?: string
+  createTime: Date
+  updateTime: Date
+  products?: BusinessProductVO[]
 }
 
-// 查询 CRM 商机列表
+export interface BusinessProductReqVO {
+  productId: number
+  businessPrice: number
+  count: number
+}
+
+export interface BusinessCreateReqVO {
+  name: string
+  customerId: number
+  ownerUserId: number
+  statusTypeId: number
+  dealTime?: Date
+  discountPercent: number
+  remark?: string
+  contactId?: number
+  products: BusinessProductReqVO[]
+}
+
+export interface BusinessUpdateReqVO {
+  id: number
+  version: number
+  name: string
+  customerId: number
+  contactNextTime?: Date
+  dealTime?: Date
+  remark?: string
+  contactId?: number
+}
+
+export interface BusinessUpdateStatusReqVO {
+  id: number
+  version: number
+  statusId?: number
+  endStatus?: number
+  loseReasonCode?: string
+  endRemark?: string
+}
+
+export interface BusinessStatusUpdateRespVO extends BusinessUpdateStatusReqVO {
+  version: number
+}
+
+export interface BusinessUpdateQuotationReqVO {
+  id: number
+  version: number
+  discountPercent: number
+  products: BusinessProductReqVO[]
+}
+
+export interface BusinessQuotationRespVO {
+  id: number
+  version: number
+  totalProductPrice: number
+  discountPercent: number
+  discountAmount: number
+  totalPrice: number
+  products: BusinessProductVO[]
+}
+
 export const getBusinessPage = async (params) => {
   return await request.get({ url: `/crm/business/page`, params })
 }
 
-// 查询 CRM 商机列表，基于指定客户
 export const getBusinessPageByCustomer = async (params) => {
   return await request.get({ url: `/crm/business/page-by-customer`, params })
 }
 
-// 查询 CRM 商机详情
 export const getBusiness = async (id: number) => {
   return await request.get({ url: `/crm/business/get?id=` + id })
 }
 
-// 获得 CRM 商机列表（精简）
 export const getSimpleBusinessList = async () => {
   return await request.get({ url: `/crm/business/simple-all-list` })
 }
 
-// 新增 CRM 商机
-export const createBusiness = async (data: BusinessVO) => {
+export const createBusiness = async (data: BusinessCreateReqVO) => {
   return await request.post({ url: `/crm/business/create`, data })
 }
 
-// 修改 CRM 商机
-export const updateBusiness = async (data: BusinessVO) => {
+export const updateBusiness = async (data: BusinessUpdateReqVO) => {
   return await request.put({ url: `/crm/business/update`, data })
 }
 
-// 修改 CRM 商机状态
-export const updateBusinessStatus = async (data: BusinessVO) => {
+export const updateBusinessStatus = async (
+  data: BusinessUpdateStatusReqVO
+): Promise<BusinessStatusUpdateRespVO> => {
   return await request.put({ url: `/crm/business/update-status`, data })
 }
 
-// 删除 CRM 商机
+export const updateBusinessQuotation = async (
+  data: BusinessUpdateQuotationReqVO
+): Promise<BusinessQuotationRespVO> => {
+  return await request.put({ url: `/crm/business/update-quotation`, data })
+}
+
 export const deleteBusiness = async (id: number) => {
   return await request.delete({ url: `/crm/business/delete?id=` + id })
 }
 
-// 导出 CRM 商机 Excel
 export const exportBusiness = async (params) => {
   return await request.download({ url: `/crm/business/export-excel`, params })
 }
 
-// 联系人关联商机列表
 export const getBusinessPageByContact = async (params) => {
   return await request.get({ url: `/crm/business/page-by-contact`, params })
 }
 
-// 商机转移
 export const transferBusiness = async (data: TransferReqVO) => {
   return await request.put({ url: '/crm/business/transfer', data })
 }

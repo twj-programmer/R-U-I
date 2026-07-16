@@ -1,11 +1,14 @@
+<!-- 23计科4班 黄金戈 -->
 <template>
   <BusinessDetailsHeader v-loading="loading" :business="business">
-    <el-button v-if="permissionListRef?.validateWrite" @click="openForm('update', business.id)">
+    <el-button
+      v-if="permissionListRef?.validateWrite && !business.endStatus"
+      @click="openForm('update', business.id)"
+    >
       {{ t('common.edit') }}
     </el-button>
     <el-button
-      v-if="permissionListRef?.validateWrite"
-      :disabled="business.endStatus"
+      v-if="permissionListRef?.validateWrite && !business.endStatus"
       type="success"
       @click="openStatusForm()"
     >

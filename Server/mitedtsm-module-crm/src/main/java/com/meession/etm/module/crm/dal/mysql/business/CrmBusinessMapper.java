@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.dal.mysql.business;
 
 import com.meession.etm.framework.common.pojo.PageResult;
@@ -14,6 +15,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 import java.util.Collection;
 import java.util.List;
+import java.math.BigDecimal;
 
 /**
  * 商机 Mapper
@@ -22,6 +24,47 @@ import java.util.List;
  */
 @Mapper
 public interface CrmBusinessMapper extends BaseMapperX<CrmBusinessDO> {
+
+    default int updateBasicByVersion(CrmBusinessDO updateObj, Integer version) {
+        return update(updateObj, new LambdaUpdateWrapper<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getId, updateObj.getId())
+                .eq(CrmBusinessDO::getVersion, version)
+                .isNull(CrmBusinessDO::getEndStatus)
+                .setSql("version = version + 1"));
+    }
+
+    default int updateStageByVersion(Long id, Integer version, Long statusId) {
+        return update(new LambdaUpdateWrapper<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getId, id)
+                .eq(CrmBusinessDO::getVersion, version)
+                .isNull(CrmBusinessDO::getEndStatus)
+                .set(CrmBusinessDO::getStatusId, statusId)
+                .setSql("version = version + 1"));
+    }
+
+    default int updateEndStatusByVersion(Long id, Integer version, Integer endStatus,
+                                         String loseReasonCode, String endRemark) {
+        return update(new LambdaUpdateWrapper<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getId, id)
+                .eq(CrmBusinessDO::getVersion, version)
+                .isNull(CrmBusinessDO::getEndStatus)
+                .set(CrmBusinessDO::getEndStatus, endStatus)
+                .set(CrmBusinessDO::getLoseReasonCode, loseReasonCode)
+                .set(CrmBusinessDO::getEndRemark, endRemark)
+                .setSql("version = version + 1"));
+    }
+
+    default int updateQuotationByVersion(Long id, Integer version, BigDecimal totalProductPrice,
+                                         BigDecimal discountPercent, BigDecimal totalPrice) {
+        return update(new LambdaUpdateWrapper<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getId, id)
+                .eq(CrmBusinessDO::getVersion, version)
+                .isNull(CrmBusinessDO::getEndStatus)
+                .set(CrmBusinessDO::getTotalProductPrice, totalProductPrice)
+                .set(CrmBusinessDO::getDiscountPercent, discountPercent)
+                .set(CrmBusinessDO::getTotalPrice, totalPrice)
+                .setSql("version = version + 1"));
+    }
 
     default int updateOwnerUserIdById(Long id, Long ownerUserId) {
         return update(new LambdaUpdateWrapper<CrmBusinessDO>()

@@ -1,108 +1,198 @@
+<!-- 23计科4班 黄金戈 -->
 <template>
-  <Dialog :title="t('crm.business.changeStatus')" v-model="dialogVisible" width="400">
+  <Dialog :title="t('crm.business.changeStatus')" v-model="dialogVisible" width="460">
     <el-form
       ref="formRef"
       :model="formData"
       :rules="formRules"
-      label-width="auto"
+      label-width="100px"
       v-loading="formLoading"
     >
-      <el-form-item :label="t('crm.business.statusName')" prop="status">
-        <el-select v-model="formData.status" :placeholder="t('crm.business.statusPlaceholder')" class="w-1/1">
+      <el-form-item :label="t('crm.business.statusName')" prop="target">
+        <el-select
+          v-model="formData.target"
+          :placeholder="t('crm.business.statusPlaceholder')"
+          class="w-1/1"
+        >
           <el-option
             v-for="item in statusList"
-            :key="item.id"
-            :label="item.name + '(' + t('crm.business.winRate') + '：' + item.percent + '%)'"
-            :value="item.id"
+            :key="`stage:${item.id}`"
+            :label="`${item.name} (${t('crm.business.winRate')}：${item.percent}%)`"
+            :value="`stage:${item.id}`"
+            :disabled="!currentStageFound || item.sort <= currentSort"
           />
           <el-option
             v-for="item in BusinessStatusApi.DEFAULT_STATUSES"
-            :key="item.endStatus"
-            :label="item.name + '(' + t('crm.business.winRate') + '：' + item.percent + '%)'"
-            :value="-item.endStatus"
+            :key="`end:${item.endStatus}`"
+            :label="`${item.name} (${t('crm.business.winRate')}：${item.percent}%)`"
+            :value="`end:${item.endStatus}`"
+            :disabled="!currentStageFound"
           />
         </el-select>
+        <div class="text-xs text-gray-500 mt-1">阶段仅允许向前流转，终态提交后不可恢复</div>
+      </el-form-item>
+
+      <el-form-item
+        v-if="selectedEndStatus === 2"
+        label="输单原因"
+        prop="loseReasonCode"
+        :rules="[{ required: true, message: '请选择输单原因', trigger: 'change' }]"
+      >
+        <el-select v-model="formData.loseReasonCode" placeholder="请选择输单原因" class="w-1/1">
+          <el-option
+            v-for="item in loseReasonOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-alert
+          v-if="loseReasonOptions.length === 0"
+          title="尚未配置启用的输单原因，请联系管理员配置"
+          type="warning"
+          :closable="false"
+          class="mt-2"
+        />
+      </el-form-item>
+
+      <el-form-item
+        v-if="selectedEndStatus === 2 || selectedEndStatus === 3"
+        :label="selectedEndStatus === 2 ? '输单说明' : '无效说明'"
+        prop="endRemark"
+      >
+        <el-input
+          v-model="formData.endRemark"
+          type="textarea"
+          :rows="3"
+          maxlength="500"
+          show-word-limit
+          placeholder="选填，最多 500 字"
+        />
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="submitForm" type="primary" :disabled="formLoading">{{ t('common.confirm') }}</el-button>
+      <el-button
+        @click="submitForm"
+        type="primary"
+        :disabled="formLoading || (selectedEndStatus === 2 && loseReasonOptions.length === 0)"
+      >
+        {{ t('common.confirm') }}
+      </el-button>
       <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
     </template>
   </Dialog>
 </template>
+
 <script setup lang="ts">
 import * as BusinessApi from '@/api/crm/business'
 import * as BusinessStatusApi from '@/api/crm/business/status'
+import { getStrDictOptions } from '@/utils/dict'
 
-const { t } = useI18n() // 国际化
-const message = useMessage() // 消息弹窗
+interface StatusFormData {
+  id?: number
+  version?: number
+  target?: string
+  loseReasonCode?: string
+  endRemark?: string
+}
 
-const dialogVisible = ref(false) // 弹窗的是否展示
-const formLoading = ref(false) // 表单的加载中
-const formData = ref({
-  id: undefined,
-  statusId: undefined,
-  endStatus: undefined,
-  status: undefined
-})
+const LOSE_REASON_DICT_TYPE = 'crm_business_lose_reason'
+const { t } = useI18n()
+const message = useMessage()
+
+const dialogVisible = ref(false)
+const formLoading = ref(false)
+const formData = ref<StatusFormData>({})
 const formRules = reactive({
-  status: [{ required: true, message: t('crm.business.statusRequired'), trigger: 'blur' }]
+  target: [{ required: true, message: t('crm.business.statusRequired'), trigger: 'change' }]
 })
-const formRef = ref() // 表单 Ref
-const statusList = ref([]) // 商机状态列表
+const formRef = ref()
+const statusList = ref<BusinessStatusApi.BusinessStatusVO[]>([])
+const currentSort = ref(-1)
+const currentStageFound = ref(false)
+const loseReasonOptions = computed(() => getStrDictOptions(LOSE_REASON_DICT_TYPE))
+const selectedEndStatus = computed(() => {
+  const target = formData.value.target
+  return target?.startsWith('end:') ? Number(target.substring(4)) : undefined
+})
 
-/** 打开弹窗 */
+watch(
+  () => formData.value.target,
+  () => {
+    if (selectedEndStatus.value !== 2) {
+      formData.value.loseReasonCode = undefined
+    }
+    if (selectedEndStatus.value !== 2 && selectedEndStatus.value !== 3) {
+      formData.value.endRemark = undefined
+    }
+    nextTick(() => formRef.value?.clearValidate(['loseReasonCode', 'endRemark']))
+  }
+)
+
 const open = async (business: BusinessApi.BusinessVO) => {
   dialogVisible.value = true
   resetForm()
-  formData.value = {
-    id: business.id,
-    statusId: business.statusId,
-    endStatus: business.endStatus,
-    status: business.endStatus != null ? -business.endStatus : business.statusId
-  }
-  // 加载状态列表
+  formData.value.id = business.id
+  formData.value.version = business.version
   formLoading.value = true
   try {
     statusList.value = await BusinessStatusApi.getBusinessStatusSimpleList(business.statusTypeId)
+    const currentStatus = statusList.value.find((item) => item.id === business.statusId)
+    currentStageFound.value = currentStatus !== undefined
+    currentSort.value = currentStatus?.sort ?? -1
+    if (!currentStatus) {
+      message.warning('当前阶段数据异常，暂时无法变更状态；请联系管理员核验阶段配置')
+    }
   } finally {
     formLoading.value = false
   }
 }
-defineExpose({ open }) // 提供 open 方法，用于打开弹窗
+defineExpose({ open })
 
-/** 提交表单 */
-const emit = defineEmits(['success']) // 定义 success 事件，用于操作成功后的回调
+const emit = defineEmits(['success'])
 const submitForm = async () => {
-  // 校验表单
-  if (!formRef) return
+  if (!formRef.value) return
   const valid = await formRef.value.validate()
-  if (!valid) return
-  // 提交请求
+  if (!valid || !formData.value.id || formData.value.version === undefined) return
+
+  const target = formData.value.target!
+  const payload: BusinessApi.BusinessUpdateStatusReqVO = {
+    id: formData.value.id,
+    version: formData.value.version
+  }
+  if (target.startsWith('stage:')) {
+    payload.statusId = Number(target.substring(6))
+  } else {
+    payload.endStatus = Number(target.substring(4))
+    if (payload.endStatus === 2) {
+      payload.loseReasonCode = formData.value.loseReasonCode
+      payload.endRemark = formData.value.endRemark?.trim() || undefined
+    } else if (payload.endStatus === 3) {
+      payload.endRemark = formData.value.endRemark?.trim() || undefined
+    }
+  }
+
+  const targetName = target.startsWith('stage:')
+    ? statusList.value.find((item) => item.id === payload.statusId)?.name
+    : BusinessStatusApi.DEFAULT_STATUSES.find((item) => item.endStatus === payload.endStatus)?.name
+  await message.confirm(`确认将商机从当前阶段变更为“${targetName || '目标状态'}”吗？`)
+
   formLoading.value = true
   try {
-    await BusinessApi.updateBusinessStatus({
-      id: formData.value.id,
-      statusId: formData.value.status > 0 ? formData.value.status : undefined,
-      endStatus: formData.value.status < 0 ? -formData.value.status : undefined
-    })
+    await BusinessApi.updateBusinessStatus(payload)
     message.success(t('crm.business.updateStatusSuccess'))
     dialogVisible.value = false
-    // 发送操作成功的事件
     emit('success')
   } finally {
     formLoading.value = false
   }
 }
 
-/** 重置表单 */
 const resetForm = () => {
-  formData.value = {
-    id: undefined,
-    statusId: undefined,
-    endStatus: undefined,
-    status: undefined
-  }
+  formData.value = {}
+  statusList.value = []
+  currentSort.value = -1
+  currentStageFound.value = false
   formRef.value?.resetFields()
 }
 </script>

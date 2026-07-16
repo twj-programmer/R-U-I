@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.enums;
 
 import com.meession.etm.framework.common.exception.ErrorCode;
@@ -26,6 +27,13 @@ public interface ErrorCodeConstants {
     ErrorCode BUSINESS_DELETE_FAIL_CONTRACT_EXISTS = new ErrorCode(1_020_002_001, "商机已关联合同，不能删除");
     ErrorCode BUSINESS_UPDATE_STATUS_FAIL_END_STATUS = new ErrorCode(1_020_002_002, "更新商机状态失败，原因：已经是结束状态");
     ErrorCode BUSINESS_UPDATE_STATUS_FAIL_STATUS_EQUALS = new ErrorCode(1_020_002_003, "更新商机状态失败，原因：已经是该状态");
+    ErrorCode BUSINESS_STATUS_REQUEST_CONFLICT = new ErrorCode(1_020_002_004, "商机阶段和结束状态必须且只能选择一项");
+    ErrorCode BUSINESS_STATUS_TRANSITION_NOT_ALLOWED = new ErrorCode(1_020_002_005, "商机阶段流转不允许");
+    ErrorCode BUSINESS_LOSE_REASON_REQUIRED = new ErrorCode(1_020_002_006, "输单原因不能为空");
+    ErrorCode BUSINESS_LOSE_REASON_INVALID = new ErrorCode(1_020_002_007, "输单原因不存在或已停用");
+    ErrorCode BUSINESS_VERSION_CONFLICT = new ErrorCode(1_020_002_008, "商机已被其他人更新，请刷新后重试");
+    ErrorCode BUSINESS_QUOTE_PRODUCT_DUPLICATE = new ErrorCode(1_020_002_009, "商机报价中存在重复产品");
+    ErrorCode BUSINESS_QUOTE_AMOUNT_INVALID = new ErrorCode(1_020_002_010, "商机报价金额、数量或减免比例不合法");
 
     // ========== 联系人管理 1-020-003-000 ==========
     ErrorCode CONTACT_NOT_EXISTS = new ErrorCode(1_020_003_000, "联系人不存在");
@@ -102,6 +110,7 @@ public interface ErrorCodeConstants {
     // ========== 跟进记录 1_020_013_000 ==========
     ErrorCode FOLLOW_UP_RECORD_NOT_EXISTS = new ErrorCode(1_020_013_000, "跟进记录不存在");
     ErrorCode FOLLOW_UP_RECORD_DELETE_DENIED = new ErrorCode(1_020_013_001, "删除跟进记录失败，原因：没有权限");
+    ErrorCode FOLLOW_UP_RECORD_BIZ_NOT_SUPPORTED = new ErrorCode(1_020_013_002, "跟进记录业务类型不受支持");
 
     // ========== 数据统计 1_020_014_000 ==========
 

@@ -1,9 +1,12 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.controller.admin.business.vo.status;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -40,6 +43,8 @@ public class CrmBusinessStatusSaveReqVO {
 
         @Schema(description = "赢单率", requiredMode = Schema.RequiredMode.REQUIRED, example = "50")
         @NotNull(message = "赢单率不能为空")
+        @DecimalMin(value = "0", message = "赢单率不能小于 0")
+        @DecimalMax(value = "100", message = "赢单率不能大于 100")
         private BigDecimal percent;
 
         @Schema(description = "排序", hidden = true, example = "1")

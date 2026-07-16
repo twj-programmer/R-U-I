@@ -1,3 +1,4 @@
+<!-- 23计科4班 黄金戈 -->
 <template>
   <el-form
     ref="formRef"
@@ -8,55 +9,68 @@
     :inline-message="true"
     :disabled="disabled"
   >
-    <el-table :data="formData" class="-mt-10px" :table-layout="'auto'">
+    <el-table :data="formData" class="-mt-10px" table-layout="auto">
       <el-table-column :label="t('crm.business.index')" type="index" align="center" width="60" />
-      <el-table-column :label="t('crm.business.product')" min-width="180">
+      <el-table-column :label="t('crm.business.product')" min-width="190">
         <template #default="{ row, $index }">
           <el-form-item :prop="`${$index}.productId`" :rules="formRules.productId" class="mb-0px!">
             <el-select
               v-model="row.productId"
               clearable
               filterable
+              :disabled="isHistoricalUnavailable(row)"
               @change="onChangeProduct($event, row)"
               :placeholder="t('common.select')"
             >
               <el-option
-                v-for="item in productList"
+                v-if="isHistoricalUnavailable(row)"
+                :key="row.productId"
+                :label="`${row.productName || row.productId}（已停用）`"
+                :value="row.productId"
+                disabled
+              />
+              <el-option
+                v-for="item in availableProductList"
                 :key="item.id"
                 :label="item.name"
                 :value="item.id"
+                :disabled="isProductSelected(item.id, row)"
               />
             </el-select>
           </el-form-item>
+          <div v-if="isHistoricalUnavailable(row)" class="text-xs text-warning mt-1">
+            已停用产品只能保留或删除
+          </div>
         </template>
       </el-table-column>
       <el-table-column :label="t('crm.business.productNo')" min-width="150">
         <template #default="{ row }">
-          <el-form-item class="mb-0px!">
-            <el-input disabled v-model="row.productNo" />
-          </el-form-item>
+          <el-input disabled v-model="row.productNo" />
         </template>
       </el-table-column>
       <el-table-column :label="t('crm.business.productUnit')" min-width="80">
         <template #default="{ row }">
-          <dict-tag :type="DICT_TYPE.CRM_PRODUCT_UNIT" :value="row.productUnit" />
+          <dict-tag v-if="row.productUnit !== undefined" :type="DICT_TYPE.CRM_PRODUCT_UNIT" :value="row.productUnit" />
         </template>
       </el-table-column>
       <el-table-column :label="t('crm.business.productPrice')" min-width="120">
         <template #default="{ row }">
-          <el-form-item class="mb-0px!">
-            <el-input disabled v-model="row.productPrice" :formatter="erpPriceInputFormatter" />
-          </el-form-item>
+          <el-input disabled v-model="row.productPrice" :formatter="erpPriceInputFormatter" />
         </template>
       </el-table-column>
       <el-table-column :label="t('crm.business.businessPrice')" fixed="right" min-width="140">
         <template #default="{ row, $index }">
-          <el-form-item :prop="`${$index}.businessPrice`" class="mb-0px!">
+          <el-form-item
+            :prop="`${$index}.businessPrice`"
+            :rules="formRules.businessPrice"
+            class="mb-0px!"
+          >
             <el-input-number
               v-model="row.businessPrice"
               controls-position="right"
-              :min="0.001"
+              :min="0.01"
               :precision="2"
+              :disabled="isHistoricalUnavailable(row)"
               class="!w-100%"
             />
           </el-form-item>
@@ -70,21 +84,22 @@
               controls-position="right"
               :min="0.001"
               :precision="3"
+              :disabled="isHistoricalUnavailable(row)"
               class="!w-100%"
             />
           </el-form-item>
         </template>
       </el-table-column>
       <el-table-column :label="t('crm.business.total')" prop="totalPrice" fixed="right" min-width="140">
-        <template #default="{ row, $index }">
-          <el-form-item :prop="`${$index}.totalPrice`" class="mb-0px!">
-            <el-input disabled v-model="row.totalPrice" :formatter="erpPriceInputFormatter" />
-          </el-form-item>
+        <template #default="{ row }">
+          <el-input disabled v-model="row.totalPrice" :formatter="erpPriceInputFormatter" />
         </template>
       </el-table-column>
-      <el-table-column align="center" fixed="right" :label="t('common.action')" min-width="150">
+      <el-table-column align="center" fixed="right" :label="t('common.action')" min-width="100">
         <template #default="{ $index }">
-          <el-button @click="handleDelete($index)" link/>
+          <el-button @click="handleDelete($index)" link type="danger">
+            {{ t('common.delete') }}
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -93,78 +108,102 @@
     <el-button @click="handleAdd" round>+ {{ t('crm.business.addProduct') }}</el-button>
   </el-row>
 </template>
+
 <script setup lang="ts">
+import * as BusinessApi from '@/api/crm/business'
 import * as ProductApi from '@/api/crm/product'
 import { erpPriceInputFormatter, erpPriceMultiply } from '@/utils'
 import { DICT_TYPE } from '@/utils/dict'
 
-const { t } = useI18n() // 国际化
+const { t } = useI18n()
+const message = useMessage()
 
-const props = defineProps<{
-  products: undefined
-  disabled: false
-}>()
-const formLoading = ref(false) // 表单的加载中
-const formData = ref([])
+const props = withDefaults(
+  defineProps<{
+    products?: BusinessApi.BusinessProductVO[]
+    disabled?: boolean
+  }>(),
+  { products: () => [], disabled: false }
+)
+const formLoading = ref(false)
+const productsLoaded = ref(false)
+const formData = ref<BusinessApi.BusinessProductVO[]>([])
 const formRules = reactive({
-  productId: [{ required: true, message: t('crm.business.productRequired'), trigger: 'blur' }],
-  businessPrice: [{ required: true, message: t('crm.business.businessPriceRequired'), trigger: 'blur' }],
+  productId: [{ required: true, message: t('crm.business.productRequired'), trigger: 'change' }],
+  businessPrice: [
+    { required: true, message: t('crm.business.businessPriceRequired'), trigger: 'blur' }
+  ],
   count: [{ required: true, message: t('crm.business.countRequired'), trigger: 'blur' }]
 })
-const formRef = ref([]) // 表单 Ref
-const productList = ref<ProductApi.ProductVO[]>([]) // 产品列表
+const formRef = ref()
+const productList = ref<ProductApi.ProductVO[]>([])
+// simple-list 后端只返回已启用产品，不在前端重复解释状态枚举值。
+const availableProductList = computed(() => productList.value)
 
-/** 初始化设置产品项 */
 watch(
   () => props.products,
-  async (val) => {
-    formData.value = val
+  (val) => {
+    formData.value = val || []
   },
   { immediate: true }
 )
 
-/** 监听合同产品变化，计算合同产品总价 */
 watch(
   () => formData.value,
   (val) => {
-    if (!val || val.length === 0) {
-      return
-    }
-    // 循环处理
     val.forEach((item) => {
-      if (item.businessPrice != null && item.count != null) {
-        item.totalPrice = erpPriceMultiply(item.businessPrice, item.count)
-      } else {
-        item.totalPrice = undefined
-      }
+      item.totalPrice =
+        item.businessPrice != null && item.count != null
+          ? erpPriceMultiply(item.businessPrice, item.count)
+          : undefined
     })
   },
   { deep: true }
 )
 
-/** 新增按钮操作 */
-const handleAdd = () => {
-  const row = {
-    id: undefined,
-    productId: undefined,
-    productUnit: undefined, // 产品单位
-    productNo: undefined, // 产品条码
-    productPrice: undefined, // 产品价格
-    businessPrice: undefined,
-    count: 1
-  }
-  formData.value.push(row)
+const isHistoricalUnavailable = (row: BusinessApi.BusinessProductVO) => {
+  if (!productsLoaded.value || !row.productId || !row.id) return false
+  return !availableProductList.value.some((item) => item.id === row.productId)
 }
 
-/** 删除按钮操作 */
+const isProductSelected = (productId: number, currentRow: BusinessApi.BusinessProductVO) =>
+  formData.value.some((row) => row !== currentRow && row.productId === productId)
+
+const handleAdd = () => {
+  formData.value.push({
+    productId: undefined as unknown as number,
+    businessPrice: undefined as unknown as number,
+    count: 1
+  })
+}
+
 const handleDelete = (index: number) => {
   formData.value.splice(index, 1)
 }
 
-/** 处理产品变更 */
-const onChangeProduct = (productId, row) => {
-  const product = productList.value.find((item) => item.id === productId)
+const clearProductSnapshot = (row: BusinessApi.BusinessProductVO) => {
+  row.productId = undefined as unknown as number
+  row.productName = undefined
+  row.productUnit = undefined
+  row.productNo = undefined
+  row.productPrice = undefined
+  row.businessPrice = undefined as unknown as number
+  row.totalPrice = undefined
+}
+
+const onChangeProduct = (productId: number | undefined, row: BusinessApi.BusinessProductVO) => {
+  if (!productId) {
+    clearProductSnapshot(row)
+    return
+  }
+  if (isProductSelected(productId, row)) {
+    message.warning('同一报价中不能重复选择产品')
+    clearProductSnapshot(row)
+    return
+  }
+  const product = availableProductList.value.find((item) => item.id === productId)
   if (product) {
+    row.productName = product.name
     row.productUnit = product.unit
     row.productNo = product.no
     row.productPrice = product.price
@@ -172,14 +211,23 @@ const onChangeProduct = (productId, row) => {
   }
 }
 
-/** 表单校验 */
-const validate = () => {
-  return formRef.value.validate()
+const validate = async () => {
+  const ids = formData.value.map((item) => item.productId).filter(Boolean)
+  if (new Set(ids).size !== ids.length) {
+    message.warning('同一报价中不能重复选择产品')
+    throw new Error('duplicate business product')
+  }
+  return await formRef.value?.validate()
 }
 defineExpose({ validate })
 
-/** 初始化 */
 onMounted(async () => {
-  productList.value = await ProductApi.getProductSimpleList()
+  formLoading.value = true
+  try {
+    productList.value = await ProductApi.getProductSimpleList()
+  } finally {
+    productsLoaded.value = true
+    formLoading.value = false
+  }
 })
 </script>
