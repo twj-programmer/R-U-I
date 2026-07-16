@@ -17,13 +17,13 @@ public class CrmCustomerOwnerHistoryListener {
 
     @EventListener
     public void onCustomerOwnerChanged(CrmCustomerOwnerChangedEvent event) {
-        log.info("[onCustomerOwnerChanged] customerId={}, beforeOwner={}, afterOwner={}, changeType={}",
+        log.info("[onCustomerOwnerChanged] customerId={}, oldOwner={}, newOwner={}, changeType={}",
                 event.getCustomerId(), event.getBeforeOwnerUserId(), event.getAfterOwnerUserId(), event.getChangeType());
 
         CrmCustomerOwnerHistoryCreateBO createBO = new CrmCustomerOwnerHistoryCreateBO();
         createBO.setCustomerId(event.getCustomerId());
-        createBO.setBeforeOwnerUserId(event.getBeforeOwnerUserId());
-        createBO.setAfterOwnerUserId(event.getAfterOwnerUserId());
+        createBO.setOldOwnerUserId(event.getBeforeOwnerUserId());
+        createBO.setNewOwnerUserId(event.getAfterOwnerUserId());
         createBO.setChangeType(event.getChangeType());
         createBO.setReason(event.getReason());
         createBO.setOperatorUserId(event.getOperatorUserId());

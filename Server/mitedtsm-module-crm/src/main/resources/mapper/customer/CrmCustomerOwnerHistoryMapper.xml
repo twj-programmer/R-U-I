@@ -3,7 +3,7 @@
 <mapper namespace="com.meession.etm.module.crm.dal.mysql.customer.CrmCustomerOwnerHistoryMapper">
 
     <sql id="columns">
-        id, customer_id, change_type, before_owner_user_id, after_owner_user_id, reason, operator_user_id, change_time, tenant_id, deleted, create_time, update_time, creator, updater
+        id, customer_id, change_type, old_owner_user_id, new_owner_user_id, reason, operator_user_id, change_time, tenant_id, deleted, create_time, update_time, creator, updater
     </sql>
 
     <select id="selectPageByCondition" resultType="com.meession.etm.module.crm.dal.dataobject.customer.CrmCustomerOwnerHistoryDO">

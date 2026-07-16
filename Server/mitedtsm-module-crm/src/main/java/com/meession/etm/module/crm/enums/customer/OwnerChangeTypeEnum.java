@@ -10,7 +10,8 @@ public enum OwnerChangeTypeEnum {
     RECEIVE("RECEIVE", "领取"),
     ASSIGN("ASSIGN", "分配"),
     TRANSFER("TRANSFER", "转移"),
-    PUT_POOL("PUT_POOL", "移入公海");
+    MANUAL_PUT("MANUAL_PUT", "手动移入公海"),
+    AUTO_PUT("AUTO_PUT", "自动移入公海");
 
     private final String type;
 

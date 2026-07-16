@@ -11,9 +11,9 @@ public class CrmCustomerOwnerHistoryCreateBO {
 
     private String changeType;
 
-    private Long beforeOwnerUserId;
+    private Long oldOwnerUserId;
 
-    private Long afterOwnerUserId;
+    private Long newOwnerUserId;
 
     private String reason;
 

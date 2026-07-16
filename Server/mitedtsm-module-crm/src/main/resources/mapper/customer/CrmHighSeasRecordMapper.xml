@@ -10,23 +10,23 @@
         SELECT <include refid="columns"/>
         FROM crm_high_seas_record
         WHERE deleted = 0
-        <if test="customerId != null">
-            AND customer_id = #{customerId}
+        <if test="reqVO.customerId != null">
+            AND customer_id = #{reqVO.customerId}
         </if>
-        <if test="actionType != null">
-            AND action_type = #{actionType}
+        <if test="reqVO.actionType != null">
+            AND action_type = #{reqVO.actionType}
         </if>
-        <if test="beginTime != null">
-            AND action_time >= #{beginTime}
+        <if test="reqVO.beginTime != null">
+            AND action_time >= #{reqVO.beginTime}
         </if>
-        <if test="endTime != null">
-            AND action_time <= #{endTime}
+        <if test="reqVO.endTime != null">
+            AND action_time <= #{reqVO.endTime}
         </if>
         ORDER BY action_time DESC
-        LIMIT #{offset}, #{size}
+        LIMIT #{reqVO.pageSize} OFFSET #{offset}
     </select>
 
-    <select id="selectCountByCondition" resultType="int">
+    <select id="selectCountByCondition" resultType="long">
         SELECT COUNT(*)
         FROM crm_high_seas_record
         WHERE deleted = 0
@@ -55,27 +55,6 @@
         FROM crm_high_seas_record
         WHERE customer_id = #{customerId} AND tenant_id = #{tenantId} AND deleted = 0
         ORDER BY action_time DESC
-    </select>
-
-    <select id="countTodayReceivedByUserId" resultType="long">
-        SELECT COUNT(*)
-        FROM crm_high_seas_record
-        WHERE after_owner_user_id = #{userId}
-          AND action_type = 'RECEIVE'
-          AND action_time >= #{actionTime}
-          AND tenant_id = #{tenantId}
-          AND deleted = 0
-    </select>
-
-    <select id="countReceivedInDaysByUserIdAndCustomerId" resultType="long">
-        SELECT COUNT(*)
-        FROM crm_high_seas_record
-        WHERE after_owner_user_id = #{userId}
-          AND customer_id = #{customerId}
-          AND action_type = 'RECEIVE'
-          AND action_time >= #{actionTime}
-          AND tenant_id = #{tenantId}
-          AND deleted = 0
     </select>
 
 </mapper>

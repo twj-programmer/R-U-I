@@ -17,8 +17,4 @@ public interface CrmHighSeasRecordService {
 
     List<CrmHighSeasRecordRespVO> getByCustomerId(Long customerId);
 
-    Long countTodayReceived(Long userId);
-
-    boolean checkCooldown(Long userId, Long customerId, Integer cooldownDays);
-
 }

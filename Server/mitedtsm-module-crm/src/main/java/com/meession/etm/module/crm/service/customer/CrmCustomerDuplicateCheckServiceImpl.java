@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicateCheckService {
+
+    private static final double SIMILARITY_THRESHOLD = 0.80;
 
     private final CrmCustomerMapper customerMapper;
 
@@ -31,7 +34,7 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         String normalizedName = normalizeName(checkBO.getName());
         String normalizedMobile = normalizeMobile(checkBO.getMobile());
 
-        List<CrmCustomerDO> candidates = findCandidateCustomers(checkBO);
+        List<CrmCustomerDO> candidates = findCandidateCustomers(checkBO, normalizedName, normalizedMobile);
 
         List<CrmCustomerDuplicateItemVO> duplicates = candidates.stream()
                 .map(customer -> buildDuplicateItem(customer, normalizedName, normalizedMobile))
@@ -46,27 +49,45 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         return respVO;
     }
 
-    private List<CrmCustomerDO> findCandidateCustomers(CrmCustomerDuplicateCheckBO checkBO) {
+    private List<CrmCustomerDO> findCandidateCustomers(CrmCustomerDuplicateCheckBO checkBO, String normalizedName, String normalizedMobile) {
         LambdaQueryWrapperX<CrmCustomerDO> query = new LambdaQueryWrapperX<>();
         query.neIfPresent(CrmCustomerDO::getId, checkBO.getExcludeId());
         query.eq(CrmCustomerDO::getDeleted, false);
 
-        String normalizedName = normalizeName(checkBO.getName());
-        String normalizedMobile = normalizeMobile(checkBO.getMobile());
-
         boolean hasName = normalizedName != null && !normalizedName.isEmpty();
         boolean hasMobile = normalizedMobile != null && !normalizedMobile.isEmpty();
 
-        if (hasName && hasMobile) {
-            query.and(i -> i.like(CrmCustomerDO::getName, normalizedName)
-                    .or().eq(CrmCustomerDO::getMobile, normalizedMobile));
-        } else if (hasName) {
-            query.like(CrmCustomerDO::getName, normalizedName);
-        } else if (hasMobile) {
+        List<CrmCustomerDO> candidates = new ArrayList<>();
+
+        if (hasMobile) {
+            query.clear();
+            query.neIfPresent(CrmCustomerDO::getId, checkBO.getExcludeId());
+            query.eq(CrmCustomerDO::getDeleted, false);
             query.eq(CrmCustomerDO::getMobile, normalizedMobile);
+            candidates.addAll(customerMapper.selectList(query));
         }
 
-        return customerMapper.selectList(query);
+        if (hasName) {
+            query.clear();
+            query.neIfPresent(CrmCustomerDO::getId, checkBO.getExcludeId());
+            query.eq(CrmCustomerDO::getDeleted, false);
+            query.like(CrmCustomerDO::getName, normalizedName.charAt(0));
+            List<CrmCustomerDO> nameCandidates = customerMapper.selectList(query);
+
+            for (CrmCustomerDO candidate : nameCandidates) {
+                String candidateNormalizedName = normalizeName(candidate.getName());
+                if (candidateNormalizedName != null && !candidateNormalizedName.isEmpty()) {
+                    double similarity = calculateLevenshteinSimilarity(normalizedName, candidateNormalizedName);
+                    if (similarity >= SIMILARITY_THRESHOLD) {
+                        if (!candidates.contains(candidate)) {
+                            candidates.add(candidate);
+                        }
+                    }
+                }
+            }
+        }
+
+        return candidates;
     }
 
     private CrmCustomerDuplicateItemVO buildDuplicateItem(CrmCustomerDO customer, String normalizedName, String normalizedMobile) {
@@ -78,14 +99,17 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         String candidateNormalizedName = normalizeName(customer.getName());
         String candidateNormalizedMobile = normalizeMobile(customer.getMobile());
 
-        double rawSimilarity = calculateLevenshteinSimilarity(normalizedName, candidateNormalizedName);
+        double rawSimilarity = 0.0;
+        if (normalizedName != null && !normalizedName.isEmpty() && candidateNormalizedName != null) {
+            rawSimilarity = calculateLevenshteinSimilarity(normalizedName, candidateNormalizedName);
+        }
         BigDecimal nameSimilarity = BigDecimal.valueOf(rawSimilarity).setScale(2, java.math.RoundingMode.HALF_UP);
         item.setSimilarity(nameSimilarity);
 
         if (normalizedMobile != null && !normalizedMobile.isEmpty() 
                 && candidateNormalizedMobile != null && candidateNormalizedMobile.equals(normalizedMobile)) {
             item.setMatchType("STRONG");
-        } else if (rawSimilarity >= 0.80) {
+        } else if (rawSimilarity >= SIMILARITY_THRESHOLD) {
             item.setMatchType("SUSPECT");
         }
 
@@ -96,35 +120,54 @@ public class CrmCustomerDuplicateCheckServiceImpl implements CrmCustomerDuplicat
         if (name == null) {
             return null;
         }
-        String normalized = name.trim().toLowerCase();
+        String normalized = name.trim();
+        normalized = fullWidthToHalfWidth(normalized);
+        normalized = normalized.toLowerCase();
         normalized = normalized.replaceAll("\\s+", "");
-        normalized = normalized.replaceAll("[\\p{Punct}\\p{Space}]", "");
+        normalized = normalized.replaceAll("[\\p{Punct}\\p{Space}\\p{Symbol}\\p{Currency}\\p{Number}]", "");
         return normalized;
+    }
+
+    private String fullWidthToHalfWidth(String text) {
+        if (text == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (char c : text.toCharArray()) {
+            if (c >= '\uFF01' && c <= '\uFF5E') {
+                sb.append((char) (c - 0xFEE0));
+            } else if (c == '\u3000') {
+                sb.append(' ');
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     private String normalizeMobile(String mobile) {
         if (mobile == null) {
             return null;
         }
-        return mobile.replaceAll("[^0-9]", "");
+        String normalized = fullWidthToHalfWidth(mobile);
+        return normalized.replaceAll("[^0-9]", "");
     }
 
     private String maskMobile(String mobile) {
         if (mobile == null || mobile.length() < 7) {
             return null;
         }
-        return mobile.substring(0, 3) + "****" + mobile.substring(mobile.length() - 4);
-    }
-
-    private BigDecimal calculateLevenshteinSimilarityAsBigDecimal(String name1, String name2) {
-        if (name1 == null || name2 == null || name1.isEmpty() || name2.isEmpty()) {
-            return BigDecimal.ZERO;
+        String normalized = normalizeMobile(mobile);
+        if (normalized == null || normalized.length() < 7) {
+            return null;
         }
-        double similarity = calculateLevenshteinSimilarity(name1, name2);
-        return BigDecimal.valueOf(similarity).setScale(2, java.math.RoundingMode.HALF_UP);
+        return normalized.substring(0, 3) + "****" + normalized.substring(normalized.length() - 4);
     }
 
     private double calculateLevenshteinSimilarity(String s1, String s2) {
+        if (s1 == null || s2 == null || s1.isEmpty() || s2.isEmpty()) {
+            return 0.0;
+        }
         int len1 = s1.length();
         int len2 = s2.length();
 

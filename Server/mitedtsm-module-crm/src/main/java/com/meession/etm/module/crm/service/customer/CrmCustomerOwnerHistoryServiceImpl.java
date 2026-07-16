@@ -60,11 +60,11 @@ public class CrmCustomerOwnerHistoryServiceImpl implements CrmCustomerOwnerHisto
         CrmCustomerOwnerHistoryRespVO respVO = BeanUtils.toBean(historyDO, CrmCustomerOwnerHistoryRespVO.class);
         respVO.setChangeTypeDesc(OwnerChangeTypeEnum.getDesc(historyDO.getChangeType()));
 
-        if (historyDO.getBeforeOwnerUserId() != null) {
-            respVO.setBeforeOwnerUserName(getUserName(historyDO.getBeforeOwnerUserId()));
+        if (historyDO.getOldOwnerUserId() != null) {
+            respVO.setOldOwnerUserName(getUserName(historyDO.getOldOwnerUserId()));
         }
-        if (historyDO.getAfterOwnerUserId() != null) {
-            respVO.setAfterOwnerUserName(getUserName(historyDO.getAfterOwnerUserId()));
+        if (historyDO.getNewOwnerUserId() != null) {
+            respVO.setNewOwnerUserName(getUserName(historyDO.getNewOwnerUserId()));
         }
         if (historyDO.getOperatorUserId() != null) {
             respVO.setOperatorUserName(getUserName(historyDO.getOperatorUserId()));
@@ -74,10 +74,13 @@ public class CrmCustomerOwnerHistoryServiceImpl implements CrmCustomerOwnerHisto
     }
 
     private String getUserName(Long userId) {
+        if (userId == 0) {
+            return "系统";
+        }
         try {
             return adminUserApi.getUser(userId).getNickname();
         } catch (Exception e) {
-            return userId == 0 ? "系统" : String.valueOf(userId);
+            return null;
         }
     }
 

@@ -14,9 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,17 +37,15 @@ public class CrmHighSeasRecordServiceImpl implements CrmHighSeasRecordService {
     @Override
     public PageResult<CrmHighSeasRecordRespVO> getPage(CrmHighSeasRecordPageReqVO reqVO) {
         int offset = (reqVO.getPageNo() - 1) * reqVO.getPageSize();
-        reqVO.setOffset(offset);
-        reqVO.setSize(reqVO.getPageSize());
 
-        List<CrmHighSeasRecordDO> list = highSeasRecordMapper.selectPageByCondition(reqVO);
-        int total = highSeasRecordMapper.selectCountByCondition(reqVO);
+        List<CrmHighSeasRecordDO> list = highSeasRecordMapper.selectPageByCondition(reqVO, offset);
+        long total = highSeasRecordMapper.selectCountByCondition(reqVO);
 
         List<CrmHighSeasRecordRespVO> respList = list.stream()
                 .map(this::buildRespVO)
                 .collect(Collectors.toList());
 
-        return new PageResult<>(respList, (long) total);
+        return new PageResult<>(respList, total);
     }
 
     @Override
@@ -64,19 +60,6 @@ public class CrmHighSeasRecordServiceImpl implements CrmHighSeasRecordService {
         return list.stream()
                 .map(this::buildRespVO)
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Long countTodayReceived(Long userId) {
-        LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
-        return highSeasRecordMapper.countTodayReceivedByUserId(userId, todayStart, TenantContextHolder.getTenantId());
-    }
-
-    @Override
-    public boolean checkCooldown(Long userId, Long customerId, Integer cooldownDays) {
-        LocalDateTime cooldownStart = LocalDateTime.now().minusDays(cooldownDays);
-        Long count = highSeasRecordMapper.countReceivedInDaysByUserIdAndCustomerId(userId, customerId, cooldownStart, TenantContextHolder.getTenantId());
-        return count == null || count == 0;
     }
 
     private CrmHighSeasRecordRespVO buildRespVO(CrmHighSeasRecordDO recordDO) {
@@ -97,10 +80,13 @@ public class CrmHighSeasRecordServiceImpl implements CrmHighSeasRecordService {
     }
 
     private String getUserName(Long userId) {
+        if (userId == 0) {
+            return "系统";
+        }
         try {
             return adminUserApi.getUser(userId).getNickname();
         } catch (Exception e) {
-            return userId == 0 ? "系统" : String.valueOf(userId);
+            return null;
         }
     }
 
