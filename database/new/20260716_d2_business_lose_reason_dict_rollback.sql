@@ -15,8 +15,9 @@ BEGIN
     IF column_exists > 0 THEN
         SELECT COUNT(*) INTO ref_count
         FROM `crm_business`
-        WHERE `lose_reason_code` IN ('COMPETITOR', 'PRICE', 'REQUIREMENT_MISMATCH', 'BUDGET', 'TIMING', 'OTHER')
-          AND `deleted` = 0;
+        WHERE `lose_reason_code` IS NOT NULL
+          AND TRIM(`lose_reason_code`) <> ''
+          AND `deleted` = b'0';
     END IF;
 
     IF column_exists = 0 THEN
