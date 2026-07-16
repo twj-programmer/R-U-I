@@ -102,6 +102,11 @@ export default {
     putPoolConfirm: '确定将客户【{name}】放入公海吗？',
     putPoolSuccess: '客户【{name}】放入公海成功',
     paramError: '参数错误，客户不能为空！',
+    duplicateCheckWarning: '检测到相似客户',
+    strongMatch: '强匹配',
+    suspectMatch: '疑似匹配',
+    matchType: '匹配类型',
+    similarity: '相似度',
     // 配额限制配置
     limitConfig: {
       title: '客户数量限制配置',

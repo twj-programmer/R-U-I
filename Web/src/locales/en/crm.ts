@@ -102,6 +102,11 @@ export default {
     putPoolConfirm: 'Are you sure to put customer [{name}] into pool?',
     putPoolSuccess: 'Put customer [{name}] into pool successfully',
     paramError: 'Parameter error, customer cannot be empty!',
+    duplicateCheckWarning: 'Duplicate customers detected',
+    strongMatch: 'Strong Match',
+    suspectMatch: 'Suspect Match',
+    matchType: 'Match Type',
+    similarity: 'Similarity',
     // Limit config
     limitConfig: {
       title: 'Customer Limit Config',
