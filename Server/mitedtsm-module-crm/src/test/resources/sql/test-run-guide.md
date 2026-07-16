@@ -34,7 +34,7 @@ mvn -pl mitedtsm-module-crm test
 
 ## 3. 测试数据工厂使用方式
 
-各业务任务在自己的测试类中使用 `CrmTestDataFactory` 时，必须继承 `BaseDbUnitTest`，并显式导入数据工厂与测试租户拦截器：
+各业务任务在自己的测试类中按以下模板编写：
 
 ```java
 import com.meession.etm.framework.test.core.ut.BaseDbUnitTest;
@@ -43,23 +43,26 @@ import com.meession.etm.module.crm.support.TenantTestConfiguration;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-
 @Import({CrmTestDataFactory.class, TenantTestConfiguration.class})
 class MyFeatureTest extends BaseDbUnitTest {
 
-@Resource
-private CrmTestDataFactory testDataFactory;
+    @Resource
+    private CrmTestDataFactory testDataFactory;
 
-@Test
-void testMyFeature() {
-    CrmCustomerDO customer = testDataFactory.createCustomer(1L);
-    // 使用测试数据...
-}
-
+    @Test
+    void testMyFeature() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(1L);
+        // 使用测试数据...
+    }
 }
 ```
 
-`BaseDbUnitTest` 不会自动扫描测试目录中的组件；缺少上述 `@Import` 会导致数据工厂或租户拦截器未加载。
+**注意事项**：
+- 必须继承 `BaseDbUnitTest`，确保使用 H2 内存数据库和自动清理机制
+- 必须添加 `@Import({CrmTestDataFactory.class, TenantTestConfiguration.class})`，否则无法注入数据工厂和租户拦截器
+- 创建数据时必须传入 `tenantId` 参数，`null` 将抛出 `IllegalArgumentException`
+
+`BaseDbUnitTest` 不会自动扫描测试目录中的组件；因此必须显式添加上述 `@Import`，否则数据工厂或租户拦截器不会加载。
 
 ## 4. 测试隔离机制
 
