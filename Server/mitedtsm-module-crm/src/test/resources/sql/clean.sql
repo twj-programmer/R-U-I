@@ -1,0 +1,13 @@
+DELETE FROM crm_high_seas_record;
+DELETE FROM crm_customer_owner_history;
+DELETE FROM crm_follow_up_record;
+DELETE FROM crm_receivable;
+DELETE FROM crm_contract;
+DELETE FROM crm_business;
+DELETE FROM crm_business_status;
+DELETE FROM crm_business_status_type;
+DELETE FROM crm_contact;
+DELETE FROM crm_clue;
+DELETE FROM crm_customer;
+DELETE FROM crm_customer_pool_config;
+DELETE FROM crm_customer_limit_config;
