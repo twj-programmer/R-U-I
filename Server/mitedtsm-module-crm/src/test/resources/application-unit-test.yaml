@@ -48,3 +48,5 @@ mybatis-plus:
 mitedtsm:
   info:
     base-package: com.meession.etm
+  tenant:
+    enable: false

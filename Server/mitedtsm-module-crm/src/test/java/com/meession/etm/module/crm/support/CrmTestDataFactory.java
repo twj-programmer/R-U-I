@@ -521,22 +521,22 @@ public class CrmTestDataFactory {
     }
 
     public long getCustomerCount(Long tenantId) {
-        return customerMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmCustomerDO>().eq("tenant_id", tenantId));
+        return TenantUtils.execute(tenantId, () -> customerMapper.selectCount(null));
     }
 
     public long getClueCount(Long tenantId) {
-        return clueMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmClueDO>().eq("tenant_id", tenantId));
+        return TenantUtils.execute(tenantId, () -> clueMapper.selectCount(null));
     }
 
     public long getBusinessCount(Long tenantId) {
-        return businessMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmBusinessDO>().eq("tenant_id", tenantId));
+        return TenantUtils.execute(tenantId, () -> businessMapper.selectCount(null));
     }
 
     public long getContractCount(Long tenantId) {
-        return contractMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmContractDO>().eq("tenant_id", tenantId));
+        return TenantUtils.execute(tenantId, () -> contractMapper.selectCount(null));
     }
 
     public long getReceivableCount(Long tenantId) {
-        return receivableMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CrmReceivableDO>().eq("tenant_id", tenantId));
+        return TenantUtils.execute(tenantId, () -> receivableMapper.selectCount(null));
     }
 }

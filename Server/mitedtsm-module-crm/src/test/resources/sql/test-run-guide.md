@@ -2,7 +2,7 @@
 
 ## 1. 环境要求
 
-- JDK 21+
+- JDK 17
 - Maven 3.9+
 
 ## 2. 运行命令
@@ -44,7 +44,7 @@ void testMyFeature() {
 
 ## 4. 测试隔离机制
 
-- 每个测试方法前自动执行 `clean.sql` 清理数据
+- 每个测试方法后自动执行 `clean.sql` 清理数据
 - 使用 `@AfterEach` 调用 `testDataFactory.clearAll()` 确保数据隔离
 - 使用 H2 内存数据库，测试间互不影响
 - 使用 `BaseDbUnitTest` 统一测试基类，不依赖外部数据库或网络服务
@@ -54,7 +54,7 @@ void testMyFeature() {
 ### 5.1 测试结果输出格式
 
 ```
-[INFO] Tests run: 29, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 31, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
