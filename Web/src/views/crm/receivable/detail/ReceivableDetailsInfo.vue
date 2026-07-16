@@ -23,6 +23,9 @@
             <dict-tag :type="DICT_TYPE.CRM_RECEIVABLE_RETURN_TYPE" :value="receivable.returnType" />
           </el-descriptions-item>
           <el-descriptions-item :label="t('receivable.remark')">{{ receivable.remark }}</el-descriptions-item>
+          <el-descriptions-item :label="t('receivable.auditStatus')">
+            <dict-tag :type="DICT_TYPE.CRM_AUDIT_STATUS" :value="receivable.auditStatus" />
+          </el-descriptions-item>
         </el-descriptions>
       </el-collapse-item>
       <el-collapse-item name="systemInfo">

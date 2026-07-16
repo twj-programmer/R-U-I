@@ -26,7 +26,8 @@ export const CONTACT_STATUS = [
 export const AUDIT_STATUS = [
   { label: t('backlog.auditPending'), value: 10 },
   { label: t('backlog.auditPassed'), value: 20 },
-  { label: t('backlog.auditRejected'), value: 30 }
+  { label: t('backlog.auditRejected'), value: 30 },
+  { label: t('backlog.auditCancelled'), value: 40 }
 ]
 
 /** 回款提醒类型 */
