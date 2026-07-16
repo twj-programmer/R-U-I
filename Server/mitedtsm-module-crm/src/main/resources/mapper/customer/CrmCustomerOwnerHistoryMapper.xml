@@ -10,23 +10,23 @@
         SELECT <include refid="columns"/>
         FROM crm_customer_owner_history
         WHERE deleted = 0
-        <if test="customerId != null">
-            AND customer_id = #{customerId}
+        <if test="reqVO.customerId != null">
+            AND customer_id = #{reqVO.customerId}
         </if>
-        <if test="changeType != null">
-            AND change_type = #{changeType}
+        <if test="reqVO.changeType != null">
+            AND change_type = #{reqVO.changeType}
         </if>
-        <if test="beginTime != null">
-            AND change_time >= #{beginTime}
+        <if test="reqVO.beginTime != null">
+            AND change_time >= #{reqVO.beginTime}
         </if>
-        <if test="endTime != null">
-            AND change_time <= #{endTime}
+        <if test="reqVO.endTime != null">
+            AND change_time <= #{reqVO.endTime}
         </if>
         ORDER BY change_time DESC
-        LIMIT #{offset}, #{size}
+        LIMIT #{reqVO.pageSize} OFFSET #{offset}
     </select>
 
-    <select id="selectCountByCondition" resultType="int">
+    <select id="selectCountByCondition" resultType="long">
         SELECT COUNT(*)
         FROM crm_customer_owner_history
         WHERE deleted = 0

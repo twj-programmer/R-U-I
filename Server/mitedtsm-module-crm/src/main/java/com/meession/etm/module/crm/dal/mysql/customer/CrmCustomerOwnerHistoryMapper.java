@@ -11,9 +11,9 @@ import java.util.List;
 @Mapper
 public interface CrmCustomerOwnerHistoryMapper extends BaseMapperX<CrmCustomerOwnerHistoryDO> {
 
-    List<CrmCustomerOwnerHistoryDO> selectPageByCondition(CrmCustomerOwnerHistoryPageReqVO reqVO);
+    List<CrmCustomerOwnerHistoryDO> selectPageByCondition(@Param("reqVO") CrmCustomerOwnerHistoryPageReqVO reqVO, @Param("offset") int offset);
 
-    int selectCountByCondition(CrmCustomerOwnerHistoryPageReqVO reqVO);
+    long selectCountByCondition(CrmCustomerOwnerHistoryPageReqVO reqVO);
 
     List<CrmCustomerOwnerHistoryDO> selectByCustomerId(@Param("customerId") Long customerId, @Param("tenantId") Long tenantId);
 

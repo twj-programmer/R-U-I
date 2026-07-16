@@ -37,17 +37,15 @@ public class CrmCustomerOwnerHistoryServiceImpl implements CrmCustomerOwnerHisto
     @Override
     public PageResult<CrmCustomerOwnerHistoryRespVO> getPage(CrmCustomerOwnerHistoryPageReqVO reqVO) {
         int offset = (reqVO.getPageNo() - 1) * reqVO.getPageSize();
-        reqVO.setOffset(offset);
-        reqVO.setSize(reqVO.getPageSize());
 
-        List<CrmCustomerOwnerHistoryDO> list = ownerHistoryMapper.selectPageByCondition(reqVO);
-        int total = ownerHistoryMapper.selectCountByCondition(reqVO);
+        List<CrmCustomerOwnerHistoryDO> list = ownerHistoryMapper.selectPageByCondition(reqVO, offset);
+        long total = ownerHistoryMapper.selectCountByCondition(reqVO);
 
         List<CrmCustomerOwnerHistoryRespVO> respList = list.stream()
                 .map(this::buildRespVO)
                 .collect(Collectors.toList());
 
-        return new PageResult<>(respList, (long) total);
+        return new PageResult<>(respList, total);
     }
 
     @Override
