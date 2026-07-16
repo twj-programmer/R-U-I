@@ -233,15 +233,11 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         customerMapper.updateById(new CrmCustomerDO().setId(reqVO.getId())
                 .setOwnerUserId(reqVO.getNewOwnerUserId()).setOwnerTime(LocalDateTime.now()));
 
-        // 2.3 发布负责人变更事件
+        // 2.3 发布负责人变更事件（转移只写负责人历史，不写公海记录）
         eventPublisher.publishEvent(new CrmCustomerOwnerChangedEvent(this, customer.getId(), beforeOwnerUserId,
                 reqVO.getNewOwnerUserId(), OwnerChangeTypeEnum.TRANSFER.getType(), "客户转移", userId));
 
-        // 2.4 写入公海记录
-        createHighSeasRecord(customer.getId(), beforeOwnerUserId, reqVO.getNewOwnerUserId(),
-                "TRANSFER", "客户转移", userId);
-
-        // 2.5 同时转移
+        // 2.4 同时转移
         if (CollUtil.isNotEmpty(reqVO.getToBizTypes())) {
             transfer(reqVO, userId);
         }
@@ -459,7 +455,9 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         customers.forEach(customer -> {
             eventPublisher.publishEvent(new CrmCustomerOwnerChangedEvent(this, customer.getId(), null,
                     ownerUserId, changeType, reason, ownerUserId));
-            createHighSeasRecord(customer.getId(), null, ownerUserId, changeType, reason, ownerUserId);
+            if (isReceive) {
+                createHighSeasRecord(customer.getId(), null, ownerUserId, changeType, reason, ownerUserId);
+            }
         });
 
         // 3. 记录操作日志

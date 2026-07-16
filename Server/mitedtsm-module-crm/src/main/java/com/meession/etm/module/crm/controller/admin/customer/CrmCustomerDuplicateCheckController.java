@@ -25,7 +25,7 @@ public class CrmCustomerDuplicateCheckController {
 
     @PostMapping("/check-duplicate")
     @Operation(summary = "客户查重")
-    @PreAuthorize("@ss.hasPermission('crm:customer:query')")
+    @PreAuthorize("@ss.hasPermission('crm:customer:check-duplicate')")
     public CommonResult<CrmCustomerDuplicateCheckRespVO> checkDuplicate(@Valid @RequestBody CrmCustomerDuplicateCheckReqVO reqVO) {
         CrmCustomerDuplicateCheckBO checkBO = BeanUtils.toBean(reqVO, CrmCustomerDuplicateCheckBO.class);
         return success(duplicateCheckService.checkDuplicate(checkBO));

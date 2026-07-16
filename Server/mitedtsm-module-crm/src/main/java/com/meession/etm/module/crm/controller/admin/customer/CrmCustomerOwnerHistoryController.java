@@ -19,7 +19,7 @@ import static com.meession.etm.framework.common.pojo.CommonResult.success;
 
 @Tag(name = "管理后台 - CRM 客户归属历史")
 @RestController
-@RequestMapping("/crm/customer/owner-history")
+@RequestMapping("/crm/customer-owner-history")
 public class CrmCustomerOwnerHistoryController {
 
     @Resource
@@ -27,7 +27,7 @@ public class CrmCustomerOwnerHistoryController {
 
     @GetMapping("/page")
     @Operation(summary = "获得客户归属历史分页")
-    @PreAuthorize("@ss.hasPermission('crm:customer:query')")
+    @PreAuthorize("@ss.hasPermission('crm:customer-owner-history:query')")
     public CommonResult<PageResult<CrmCustomerOwnerHistoryRespVO>> getPage(@Valid CrmCustomerOwnerHistoryPageReqVO reqVO) {
         return success(ownerHistoryService.getPage(reqVO));
     }
@@ -35,7 +35,7 @@ public class CrmCustomerOwnerHistoryController {
     @GetMapping("/list")
     @Operation(summary = "获得客户归属历史列表")
     @Parameter(name = "customerId", description = "客户编号", required = true, example = "1024")
-    @PreAuthorize("@ss.hasPermission('crm:customer:query')")
+    @PreAuthorize("@ss.hasPermission('crm:customer-owner-history:query')")
     public CommonResult<List<CrmCustomerOwnerHistoryRespVO>> getByCustomerId(@RequestParam("customerId") Long customerId) {
         return success(ownerHistoryService.getByCustomerId(customerId));
     }

@@ -1,0 +1,1 @@
+DELETE FROM `system_permission` WHERE `code` IN ('crm:customer:check-duplicate', 'crm:customer-owner-history:query', 'crm:customer-high-seas-record:query');
