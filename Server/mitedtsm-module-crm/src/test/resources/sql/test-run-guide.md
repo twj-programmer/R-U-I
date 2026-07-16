@@ -10,28 +10,43 @@
 ### 2.1 运行测试底座验证
 
 ```bash
-cd Server/mitedtsm-module-crm
-mvn test -Dtest=CrmTestSupportTest
+cd Server
+mvn -pl mitedtsm-module-crm -am test -Dtest=CrmTestSupportTest "-Dsurefire.failIfNoSpecifiedTests=false"
 ```
 
 ### 2.2 连续运行两次验证稳定性
 
 ```bash
-mvn test -Dtest=CrmTestSupportTest
-mvn test -Dtest=CrmTestSupportTest
+mvn -pl mitedtsm-module-crm -am test -Dtest=CrmTestSupportTest "-Dsurefire.failIfNoSpecifiedTests=false"
+mvn -pl mitedtsm-module-crm -am test -Dtest=CrmTestSupportTest "-Dsurefire.failIfNoSpecifiedTests=false"
 ```
 
 ### 2.3 运行所有 CRM 测试
 
 ```bash
-mvn test
+mvn -pl mitedtsm-module-crm -am install -DskipTests
+mvn -pl mitedtsm-module-crm test
 ```
+
+必须从 `Server` 根目录执行上述命令。CRM 子模块会依赖同一 Reactor 内的 `mitedtsm-dependencies`；直接进入 `mitedtsm-module-crm` 执行 Maven 会把它当作远程快照依赖解析，干净环境可能因此失败。
+
+执行全部 CRM 测试时，先安装所需本地模块但跳过它们的测试，再单独执行 CRM 测试。这样不会因为 BPM、系统等依赖模块的既有测试失败而跳过 CRM 测试。
 
 ## 3. 测试数据工厂使用方式
 
-各业务任务在自己的测试类中注入 `CrmTestDataFactory`：
+各业务任务在自己的测试类中使用 `CrmTestDataFactory` 时，必须继承 `BaseDbUnitTest`，并显式导入数据工厂与测试租户拦截器：
 
 ```java
+import com.meession.etm.framework.test.core.ut.BaseDbUnitTest;
+import com.meession.etm.module.crm.support.CrmTestDataFactory;
+import com.meession.etm.module.crm.support.TenantTestConfiguration;
+import jakarta.annotation.Resource;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
+
+@Import({CrmTestDataFactory.class, TenantTestConfiguration.class})
+class MyFeatureTest extends BaseDbUnitTest {
+
 @Resource
 private CrmTestDataFactory testDataFactory;
 
@@ -40,7 +55,11 @@ void testMyFeature() {
     CrmCustomerDO customer = testDataFactory.createCustomer(1L);
     // 使用测试数据...
 }
+
+}
 ```
+
+`BaseDbUnitTest` 不会自动扫描测试目录中的组件；缺少上述 `@Import` 会导致数据工厂或租户拦截器未加载。
 
 ## 4. 测试隔离机制
 
