@@ -9,6 +9,7 @@ import com.meession.etm.framework.common.exception.ServiceException;
 import com.meession.etm.framework.common.pojo.PageResult;
 import com.meession.etm.framework.common.util.collection.CollectionUtils;
 import com.meession.etm.framework.common.util.object.BeanUtils;
+import com.meession.etm.framework.tenant.core.context.TenantContextHolder;
 import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessTransferReqVO;
 import com.meession.etm.module.crm.controller.admin.contact.vo.CrmContactTransferReqVO;
 import com.meession.etm.module.crm.controller.admin.contract.vo.contract.CrmContractTransferReqVO;
@@ -44,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 import static com.meession.etm.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -224,6 +226,9 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         customerMapper.updateById(new CrmCustomerDO().setId(reqVO.getId())
                 .setOwnerUserId(reqVO.getNewOwnerUserId()).setOwnerTime(LocalDateTime.now()));
 
+        ownerHistoryService.insertHistory(customer.getId(), "TRANSFER", customer.getOwnerUserId(),
+                reqVO.getNewOwnerUserId(), "客户负责人转移", userId, LocalDateTime.now());
+
         // 2.3 同时转移
         if (CollUtil.isNotEmpty(reqVO.getToBizTypes())) {
             transfer(reqVO, userId);
@@ -385,7 +390,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         validateCustomerIsLocked(customer, true);
 
         // 2. 客户放入公海
-        putCustomerPool(customer);
+        putCustomerPool(customer, "MANUAL_PUT", getLoginUserId(), "手动移入公海");
 
         // 记录操作日志上下文
         LogRecordContext.putVariable("customerName", customer.getName());
@@ -410,12 +415,31 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         // 1.4 校验负责人是否到达上限
         validateCustomerExceedOwnerLimit(ownerUserId, customers.size());
 
+        CrmCustomerPoolConfigDO poolConfig = customerPoolConfigService.getOrCreateCustomerPoolConfigForUpdate();
+        Long tenantId = TenantContextHolder.getTenantId();
+        LocalDateTime now = LocalDateTime.now();
+        if (Boolean.TRUE.equals(isReceive)) {
+            LocalDateTime dayStart = now.toLocalDate().atStartOfDay();
+            LocalDateTime nextDayStart = dayStart.plusDays(1);
+            long receivedToday = highSeasRecordService.getReceiveCountByUserIdAndDateRange(
+                    tenantId, ownerUserId, dayStart, nextDayStart);
+            if (receivedToday + customers.size() > poolConfig.getReceiveLimitPerDay()) {
+                throw exception(CUSTOMER_RECEIVE_EXCEED_DAILY_LIMIT);
+            }
+            LocalDateTime cooldownStart = now.minusDays(poolConfig.getReceiveCooldownDays());
+            for (CrmCustomerDO customer : customers) {
+                if (highSeasRecordService.getReceiveCountByCustomerIdAndTimeRange(
+                        tenantId, customer.getId(), ownerUserId, cooldownStart, now) > 0) {
+                    throw exception(CUSTOMER_RECEIVE_COOLDOWN);
+                }
+            }
+        }
+
         // 2. 领取公海数据（逐条处理，确保并发安全）
         List<CrmCustomerDO> successCustomers = new ArrayList<>();
         Long operatorUserId = isReceive ? ownerUserId : getLoginUserId();
         AdminUserRespDTO operatorUser = adminUserApi.getUser(operatorUserId);
         String operatorUserName = operatorUser != null ? operatorUser.getNickname() : "";
-        LocalDateTime now = LocalDateTime.now();
 
         for (CrmCustomerDO customer : customers) {
             int updateCount = customerMapper.updateOwnerUserIdByIdAndNull(customer.getId(), ownerUserId);
@@ -463,7 +487,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         int count = 0;
         for (CrmCustomerDO customer : customerList) {
             try {
-                getSelf().putCustomerPool(customer);
+                getSelf().putCustomerPool(customer, "AUTO_PUT", 0L, "自动移入公海");
                 count++;
             } catch (Exception e) {
                 log.error("[autoPutCustomerPool][客户({}) 放入公海异常]", customer.getId(), e);
@@ -473,7 +497,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    protected void putCustomerPool(CrmCustomerDO customer) {
+    protected void putCustomerPool(CrmCustomerDO customer, String actionType, Long operatorUserId, String reason) {
         int updateOwnerUserIncr = customerMapper.updateOwnerUserIdById(customer.getId(), null);
         if (updateOwnerUserIncr == 0) {
             throw exception(CUSTOMER_UPDATE_OWNER_USER_FAIL);
@@ -483,6 +507,12 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
 
         permissionService.deletePermission(CrmBizTypeEnum.CRM_CUSTOMER.getType(), customer.getId(),
                 CrmPermissionLevelEnum.OWNER.getLevel());
+
+        LocalDateTime now = LocalDateTime.now();
+        highSeasRecordService.insertRecord(customer.getId(), actionType, customer.getOwnerUserId(), null,
+                reason, operatorUserId, now);
+        ownerHistoryService.insertHistory(customer.getId(), actionType, customer.getOwnerUserId(), null,
+                reason, operatorUserId, now);
     }
 
     @LogRecord(type = CRM_CUSTOMER_TYPE, subType = CRM_CUSTOMER_RECEIVE_SUB_TYPE, bizNo = "{{#customer.id}}",
