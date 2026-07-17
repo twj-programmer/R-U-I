@@ -232,7 +232,7 @@
             {{ t('crm.contract.submitAudit') }}
           </el-button>
           <el-button
-            v-else
+            v-else-if="scope.row.processInstanceId"
             link
             v-hasPermi="['crm:contract:update']"
             type="primary"
@@ -376,6 +376,10 @@ const handleSubmit = async (row: ContractApi.ContractVO) => {
 
 /** 查看审批 */
 const handleProcessDetail = (row: ContractApi.ContractVO) => {
+  if (!row.processInstanceId) {
+    message.warning(t('crm.contract.noProcessInstanceId'))
+    return
+  }
   push({ name: 'BpmProcessInstanceDetail', query: { id: row.processInstanceId } })
 }
 

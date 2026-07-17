@@ -376,6 +376,7 @@ export default {
     // 提示消息
     submitAuditConfirm: '您确定提交【{name}】审核吗？',
     submitAuditSuccess: '提交审核成功！',
+    noProcessInstanceId: '暂无审批流程信息，无法查看审批详情',
     paramError: '参数错误，合同不能为空！',
     // Tab 标签
     followUpTab: '跟进记录',
@@ -631,9 +632,11 @@ export default {
     contactToday: '今日需联系',
     contactOverdue: '已逾期',
     contactDone: '已联系',
+    auditDraft: '草稿',
     auditPending: '待审批',
     auditPassed: '审核通过',
     auditRejected: '审核不通过',
+    auditCanceled: '已取消',
     receivablePending: '待回款',
     receivableOverdue: '已逾期',
     receivableDone: '已回款',

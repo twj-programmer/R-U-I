@@ -376,6 +376,7 @@ export default {
     // Messages
     submitAuditConfirm: 'Are you sure to submit [{name}] for audit?',
     submitAuditSuccess: 'Submit audit successfully!',
+    noProcessInstanceId: 'No approval process information, cannot view approval details',
     paramError: 'Parameter error, contract cannot be empty!',
     // Tab labels
     followUpTab: 'Follow Up Records',
@@ -631,9 +632,11 @@ export default {
     contactToday: 'Today Contact',
     contactOverdue: 'Overdue',
     contactDone: 'Done',
+    auditDraft: 'Draft',
     auditPending: 'Pending',
     auditPassed: 'Passed',
     auditRejected: 'Rejected',
+    auditCanceled: 'Canceled',
     receivablePending: 'Pending',
     receivableOverdue: 'Overdue',
     receivableDone: 'Done',

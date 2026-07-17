@@ -13,7 +13,7 @@ export interface ContractVO {
   ownerUserId: number
   ownerUserName?: string
   ownerUserDeptName?: string
-  processInstanceId: number
+  processInstanceId?: string
   auditStatus: number
   orderDate: Date
   startTime: Date
