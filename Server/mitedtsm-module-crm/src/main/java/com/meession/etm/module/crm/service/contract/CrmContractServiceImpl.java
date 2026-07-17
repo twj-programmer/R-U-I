@@ -98,6 +98,7 @@ public class CrmContractServiceImpl implements CrmContractService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CrmPermission(bizType = CrmBizTypeEnum.CRM_CONTRACT, bizId = "#id", level = CrmPermissionLevelEnum.WRITE)
     @LogRecord(type = CRM_CONTRACT_TYPE, subType = CRM_CONTRACT_CREATE_SUB_TYPE, bizNo = "{{#contract.id}}",
             success = CRM_CONTRACT_CREATE_SUCCESS)
     public Long createContract(CrmContractSaveReqVO createReqVO, Long userId) {
@@ -292,7 +293,7 @@ public class CrmContractServiceImpl implements CrmContractService {
     public void submitContract(Long id, Long userId) {
         // 1. 校验合同是否在审批
         CrmContractDO contract = validateContractExists(id);
-        if (ObjUtil.notEqual(contract.getAuditStatus(), CrmAuditStatusEnum.DRAFT.getStatus())) {
+        if (contractMapper.updateAuditStatusFromDraft(id, CrmAuditStatusEnum.PROCESS.getStatus()) != 1) {
             throw exception(CONTRACT_SUBMIT_FAIL_NOT_DRAFT);
         }
 
@@ -301,8 +302,7 @@ public class CrmContractServiceImpl implements CrmContractService {
                 .setProcessDefinitionKey(BPM_PROCESS_DEFINITION_KEY).setBusinessKey(String.valueOf(id)));
 
         // 3. 更新合同工作流编号
-        contractMapper.updateById(new CrmContractDO().setId(id).setProcessInstanceId(processInstanceId)
-                .setAuditStatus(CrmAuditStatusEnum.PROCESS.getStatus()));
+        contractMapper.updateById(new CrmContractDO().setId(id).setProcessInstanceId(processInstanceId));
 
         // 3. 记录日志
         LogRecordContext.putVariable("contractName", contract.getName());
