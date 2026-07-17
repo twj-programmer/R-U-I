@@ -80,6 +80,7 @@ public class CrmReceivableServiceImpl implements CrmReceivableService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CrmPermission(bizType = CrmBizTypeEnum.CRM_RECEIVABLE, bizId = "#id", level = CrmPermissionLevelEnum.WRITE)
     @LogRecord(type = CRM_RECEIVABLE_TYPE, subType = CRM_RECEIVABLE_CREATE_SUB_TYPE, bizNo = "{{#receivable.id}}",
             success = CRM_RECEIVABLE_CREATE_SUCCESS)
     public Long createReceivable(CrmReceivableSaveReqVO createReqVO) {
@@ -240,10 +241,11 @@ public class CrmReceivableServiceImpl implements CrmReceivableService {
     @Transactional(rollbackFor = Exception.class)
     @LogRecord(type = CRM_RECEIVABLE_TYPE, subType = CRM_RECEIVABLE_SUBMIT_SUB_TYPE, bizNo = "{{#id}}",
             success = CRM_RECEIVABLE_SUBMIT_SUCCESS)
+    @CrmPermission(bizType = CrmBizTypeEnum.CRM_RECEIVABLE, bizId = "#id", level = CrmPermissionLevelEnum.WRITE)
     public void submitReceivable(Long id, Long userId) {
         // 1. 校验回款是否在审批
         CrmReceivableDO receivable = validateReceivableExists(id);
-        if (ObjUtil.notEqual(receivable.getAuditStatus(), CrmAuditStatusEnum.DRAFT.getStatus())) {
+        if (receivableMapper.updateAuditStatusFromDraft(id, CrmAuditStatusEnum.PROCESS.getStatus()) != 1) {
             throw exception(RECEIVABLE_SUBMIT_FAIL_NOT_DRAFT);
         }
 
@@ -252,8 +254,7 @@ public class CrmReceivableServiceImpl implements CrmReceivableService {
                 .setProcessDefinitionKey(BPM_PROCESS_DEFINITION_KEY).setBusinessKey(String.valueOf(id)));
 
         // 3. 更新回款工作流编号
-        receivableMapper.updateById(new CrmReceivableDO().setId(id).setProcessInstanceId(processInstanceId)
-                .setAuditStatus(CrmAuditStatusEnum.PROCESS.getStatus()));
+        receivableMapper.updateById(new CrmReceivableDO().setId(id).setProcessInstanceId(processInstanceId));
 
         // 4. 记录日志
         LogRecordContext.putVariable("receivableNo", receivable.getNo());

@@ -1,6 +1,7 @@
 package com.meession.etm.module.crm.dal.mysql.contract;
 
 import cn.hutool.core.date.LocalDateTimeUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.meession.etm.framework.common.pojo.PageResult;
 import com.meession.etm.framework.mybatis.core.mapper.BaseMapperX;
 import com.meession.etm.framework.mybatis.core.query.LambdaQueryWrapperX;
@@ -24,6 +25,13 @@ import java.util.List;
  */
 @Mapper
 public interface CrmContractMapper extends BaseMapperX<CrmContractDO> {
+
+    default int updateAuditStatusFromDraft(Long id, Integer processStatus) {
+        return update(new LambdaUpdateWrapper<CrmContractDO>()
+                .eq(CrmContractDO::getId, id)
+                .eq(CrmContractDO::getAuditStatus, CrmAuditStatusEnum.DRAFT.getStatus())
+                .set(CrmContractDO::getAuditStatus, processStatus));
+    }
 
     default CrmContractDO selectByNo(String no) {
         return selectOne(CrmContractDO::getNo, no);

@@ -13,6 +13,7 @@ import com.meession.etm.module.crm.enums.common.CrmBizTypeEnum;
 import com.meession.etm.module.crm.enums.common.CrmSceneTypeEnum;
 import com.meession.etm.module.crm.util.CrmPermissionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.math.BigDecimal;
@@ -30,6 +31,13 @@ import static com.meession.etm.framework.common.util.collection.CollectionUtils.
  */
 @Mapper
 public interface CrmReceivableMapper extends BaseMapperX<CrmReceivableDO> {
+
+    default int updateAuditStatusFromDraft(Long id, Integer processStatus) {
+        return update(new LambdaUpdateWrapper<CrmReceivableDO>()
+                .eq(CrmReceivableDO::getId, id)
+                .eq(CrmReceivableDO::getAuditStatus, CrmAuditStatusEnum.DRAFT.getStatus())
+                .set(CrmReceivableDO::getAuditStatus, processStatus));
+    }
 
     default CrmReceivableDO selectByNo(String no) {
         return selectOne(CrmReceivableDO::getNo, no);
