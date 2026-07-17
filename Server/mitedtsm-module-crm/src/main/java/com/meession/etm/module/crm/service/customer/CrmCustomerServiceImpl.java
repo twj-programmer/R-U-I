@@ -408,7 +408,11 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         adminUserApi.validateUserList(singletonList(ownerUserId));
         // 1.3 校验状态
         customers.forEach(customer -> {
-            validateCustomerOwnerExists(customer, false);
+            // 领取时由后续的“owner_user_id IS NULL”条件更新原子判定公海状态，
+            // 避免先读后写造成并发下返回错误的业务状态。
+            if (!Boolean.TRUE.equals(isReceive)) {
+                validateCustomerOwnerExists(customer, false);
+            }
             validateCustomerIsLocked(customer, false);
             validateCustomerDeal(customer);
         });
@@ -438,6 +442,10 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         // 2. 领取公海数据（逐条处理，确保并发安全）
         List<CrmCustomerDO> successCustomers = new ArrayList<>();
         Long operatorUserId = isReceive ? ownerUserId : getLoginUserId();
+        // 定时任务或测试环境可能没有登录上下文；0 统一表示系统操作，不能写入 NULL。
+        if (operatorUserId == null) {
+            operatorUserId = 0L;
+        }
         AdminUserRespDTO operatorUser = adminUserApi.getUser(operatorUserId);
         String operatorUserName = operatorUser != null ? operatorUser.getNickname() : "";
 
