@@ -388,6 +388,9 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         validateCustomerOwnerExists(customer, true);
         // 1.3. 校验客户是否锁定
         validateCustomerIsLocked(customer, true);
+        if (businessService.getActiveBusinessCountByCustomerId(customer.getId()) > 0) {
+            throw exception(CUSTOMER_PUT_POOL_FAIL_ACTIVE_BUSINESS);
+        }
 
         // 2. 客户放入公海
         putCustomerPool(customer, "MANUAL_PUT", getLoginUserId(), "手动移入公海");

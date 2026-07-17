@@ -90,6 +90,12 @@ public interface CrmBusinessMapper extends BaseMapperX<CrmBusinessDO> {
         return selectCount(CrmBusinessDO::getStatusTypeId, statusTypeId);
     }
 
+    default Long selectActiveCountByCustomerId(Long customerId) {
+        return selectCount(new LambdaQueryWrapperX<CrmBusinessDO>()
+                .eq(CrmBusinessDO::getCustomerId, customerId)
+                .isNull(CrmBusinessDO::getEndStatus));
+    }
+
     default List<CrmBusinessDO> selectListByCustomerIdOwnerUserId(Long customerId, Long ownerUserId) {
         return selectList(new LambdaQueryWrapperX<CrmBusinessDO>()
                 .eq(CrmBusinessDO::getCustomerId, customerId)
