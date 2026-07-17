@@ -28,7 +28,17 @@ public class CrmCustomerPoolConfigServiceImpl implements CrmCustomerPoolConfigSe
 
     @Override
     public CrmCustomerPoolConfigDO getCustomerPoolConfig() {
-        return customerPoolConfigMapper.selectOne();
+        CrmCustomerPoolConfigDO config = customerPoolConfigMapper.selectOne();
+        if (config == null) {
+            return null;
+        }
+        if (config.getReceiveLimitPerDay() == null) {
+            config.setReceiveLimitPerDay(10);
+        }
+        if (config.getReceiveCooldownDays() == null) {
+            config.setReceiveCooldownDays(30);
+        }
+        return config;
     }
 
     @Override

@@ -361,3 +361,39 @@ CREATE TABLE IF NOT EXISTS crm_permission
     deleted     BOOLEAN DEFAULT FALSE COMMENT '是否删除',
     tenant_id   BIGINT NOT NULL DEFAULT 0 COMMENT '租户编号'
 );
+
+CREATE TABLE IF NOT EXISTS crm_high_seas_record
+(
+    id                  BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '编号',
+    tenant_id           BIGINT NOT NULL DEFAULT 0 COMMENT '租户编号',
+    customer_id         BIGINT NOT NULL COMMENT '客户编号',
+    action_type         VARCHAR(32) NOT NULL COMMENT '动作类型',
+    before_owner_user_id BIGINT COMMENT '移入前负责人编号',
+    after_owner_user_id BIGINT COMMENT '移入后负责人编号',
+    reason              VARCHAR(500) COMMENT '备注',
+    operator_user_id    BIGINT NOT NULL COMMENT '操作人编号',
+    action_time         TIMESTAMP NOT NULL COMMENT '动作时间',
+    creator             VARCHAR(64) DEFAULT '' COMMENT '创建者',
+    create_time         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updater             VARCHAR(64) DEFAULT '' COMMENT '更新者',
+    update_time         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted             BOOLEAN DEFAULT FALSE COMMENT '是否删除'
+);
+
+CREATE TABLE IF NOT EXISTS crm_customer_owner_history
+(
+    id                  BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '编号',
+    tenant_id           BIGINT NOT NULL DEFAULT 0 COMMENT '租户编号',
+    customer_id         BIGINT NOT NULL COMMENT '客户编号',
+    change_type         VARCHAR(32) NOT NULL COMMENT '变更类型',
+    old_owner_user_id   BIGINT COMMENT '旧负责人编号',
+    new_owner_user_id   BIGINT COMMENT '新负责人编号',
+    reason              VARCHAR(500) COMMENT '备注',
+    operator_user_id    BIGINT NOT NULL COMMENT '操作人编号',
+    change_time         TIMESTAMP NOT NULL COMMENT '变更时间',
+    creator             VARCHAR(64) DEFAULT '' COMMENT '创建者',
+    create_time         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updater             VARCHAR(64) DEFAULT '' COMMENT '更新者',
+    update_time         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted             BOOLEAN DEFAULT FALSE COMMENT '是否删除'
+);
