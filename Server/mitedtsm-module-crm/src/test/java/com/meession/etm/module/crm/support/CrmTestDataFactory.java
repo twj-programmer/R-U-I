@@ -131,9 +131,8 @@ public class CrmTestDataFactory {
         validateTenantId(tenantId);
         CrmCustomerDO customer = createCustomer(tenantId);
         return TenantUtils.execute(tenantId, () -> {
-            customer.setOwnerUserId(null);
-            customerMapper.updateById(customer);
-            return customer;
+            customerMapper.updateOwnerUserIdById(customer.getId(), null);
+            return customer.setOwnerUserId(null);
         });
     }
 
