@@ -45,6 +45,9 @@
       <el-tab-pane :label="t('basicInfoTab')">
         <CustomerDetailsInfo :customer="customer" />
       </el-tab-pane>
+      <el-tab-pane label="历史记录" lazy>
+        <CustomerHistoryTabs :customer-id="customer.id!" />
+      </el-tab-pane>
       <el-tab-pane :label="t('contactTab')" lazy>
         <ContactList
           :biz-id="customer.id!"
@@ -104,6 +107,7 @@ import { BizTypeEnum } from '@/api/crm/permission'
 import type { OperateLogVO } from '@/api/system/operatelog'
 import { getOperateLogPage } from '@/api/crm/operateLog'
 import CustomerDistributeForm from '@/views/crm/customer/pool/CustomerDistributeForm.vue'
+import CustomerHistoryTabs from './CustomerHistoryTabs.vue'
 
 defineOptions({ name: 'CrmCustomerDetail' })
 
