@@ -3,6 +3,13 @@
     <el-button v-if="permissionListRef?.validateWrite" @click="openForm('update', receivable.id)">
       {{ t('common.edit') }}
     </el-button>
+    <el-button
+      v-if="receivable.processInstanceId"
+      v-hasPermi="['crm:receivable:update']"
+      @click="handleProcessDetail"
+    >
+      {{ t('contract.viewApproval') }}
+    </el-button>
   </ReceivableDetailsHeader>
   <el-col>
     <el-tabs>
@@ -77,6 +84,16 @@ const getOperateLog = async (receivableId: number) => {
     bizId: receivableId
   })
   logList.value = data.list
+}
+
+/** 查看审批 */
+const { push } = useRouter()
+const handleProcessDetail = () => {
+  if (!receivable.value.processInstanceId) {
+    message.warning(t('crm.noProcessInstanceId'))
+    return
+  }
+  push({ name: 'BpmProcessInstanceDetail', query: { id: receivable.value.processInstanceId } })
 }
 
 /** 关闭窗口 */

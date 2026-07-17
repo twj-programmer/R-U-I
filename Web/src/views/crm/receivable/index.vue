@@ -39,6 +39,24 @@
             </el-select>
           </el-form-item>
         </el-col>
+        <el-col :span="8">
+          <el-form-item :label="t('receivable.auditStatus')" prop="auditStatus">
+            <el-select
+              v-model="queryParams.auditStatus"
+              class="!w-240px"
+              :placeholder="t('common.status')"
+              clearable
+              @change="handleQuery"
+            >
+              <el-option
+                v-for="(option, index) in AUDIT_STATUS"
+                :label="option.label"
+                :value="option.value"
+                :key="index"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
       </el-row>
       <el-row>
         <el-col :span="24">
@@ -222,6 +240,7 @@ import ReceivableForm from './ReceivableForm.vue'
 import * as CustomerApi from '@/api/crm/customer'
 import { TabsPaneContext } from 'element-plus'
 import { erpPriceTableColumnFormatter } from '@/utils'
+import { AUDIT_STATUS } from '../backlog/components/common'
 
 defineOptions({ name: 'Receivable' })
 
@@ -235,7 +254,8 @@ const queryParams = reactive({
   pageSize: 10,
   sceneType: '1', // 默认与 activeName 相等
   no: undefined,
-  customerId: undefined
+  customerId: undefined,
+  auditStatus: undefined
 })
 const queryFormRef = ref() // 搜索的表单
 const exportLoading = ref(false) // 导出的加载中
