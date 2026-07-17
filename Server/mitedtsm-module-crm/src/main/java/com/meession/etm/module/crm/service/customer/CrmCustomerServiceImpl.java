@@ -48,6 +48,7 @@ import java.util.*;
 
 import static com.meession.etm.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.meession.etm.framework.common.util.collection.CollectionUtils.filterList;
+import static com.meession.etm.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 import static com.meession.etm.module.crm.enums.ErrorCodeConstants.*;
 import static com.meession.etm.module.crm.enums.LogRecordConstants.*;
 import static com.meession.etm.module.crm.enums.customer.CrmCustomerLimitConfigTypeEnum.CUSTOMER_LOCK_LIMIT;
@@ -86,6 +87,14 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
 
     @Resource
     private AdminUserApi adminUserApi;
+
+    @Resource
+    @Lazy
+    private CrmHighSeasRecordService highSeasRecordService;
+
+    @Resource
+    @Lazy
+    private CrmCustomerOwnerHistoryService ownerHistoryService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -214,6 +223,9 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         // 2.2 转移后重新设置负责人
         customerMapper.updateById(new CrmCustomerDO().setId(reqVO.getId())
                 .setOwnerUserId(reqVO.getNewOwnerUserId()).setOwnerTime(LocalDateTime.now()));
+
+        ownerHistoryService.insertHistory(customer.getId(), "TRANSFER", customer.getOwnerUserId(),
+                reqVO.getNewOwnerUserId(), "客户负责人转移", userId, LocalDateTime.now());
 
         // 2.3 同时转移
         if (CollUtil.isNotEmpty(reqVO.getToBizTypes())) {
@@ -376,7 +388,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         validateCustomerIsLocked(customer, true);
 
         // 2. 客户放入公海
-        putCustomerPool(customer);
+        putCustomerPool(customer, "MANUAL_PUT", getLoginUserId(), "手动移入公海");
 
         // 记录操作日志上下文
         LogRecordContext.putVariable("customerName", customer.getName());
@@ -419,7 +431,20 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         customerMapper.updateBatch(updateCustomers);
         // 2.3 创建负责人数据权限
         permissionService.createPermissionBatch(createPermissions);
-        // TODO @芋艿：要不要处理关联的联系人？？？
+        Long operatorUserId = isReceive ? ownerUserId : getLoginUserId();
+        if (operatorUserId == null) {
+            operatorUserId = 0L; // no login context means system action
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (CrmCustomerDO customer : customers) {
+            contactService.updateOwnerUserIdByCustomerId(customer.getId(), ownerUserId);
+            if (Boolean.TRUE.equals(isReceive)) {
+                highSeasRecordService.insertRecord(customer.getId(), "RECEIVE", null, ownerUserId,
+                        "领取公海客户", operatorUserId, now);
+            }
+            ownerHistoryService.insertHistory(customer.getId(), Boolean.TRUE.equals(isReceive) ? "RECEIVE" : "ASSIGN",
+                    null, ownerUserId, Boolean.TRUE.equals(isReceive) ? "领取公海客户" : "分配公海客户", operatorUserId, now);
+        }
 
         // 3. 记录操作日志
         AdminUserRespDTO user = null;
@@ -443,7 +468,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         int count = 0;
         for (CrmCustomerDO customer : customerList) {
             try {
-                getSelf().putCustomerPool(customer);
+                getSelf().putCustomerPool(customer, "AUTO_PUT", 0L, "自动移入公海");
                 count++;
             } catch (Throwable e) {
                 log.error("[autoPutCustomerPool][客户({}) 放入公海异常]", customer.getId(), e);
@@ -453,7 +478,7 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
     }
 
     @Transactional(rollbackFor = Exception.class) // 需要 protected 修饰，因为需要在事务中调用
-    protected void putCustomerPool(CrmCustomerDO customer) {
+    protected void putCustomerPool(CrmCustomerDO customer, String actionType, Long operatorUserId, String reason) {
         // 1. 设置负责人为 NULL
         int updateOwnerUserIncr = customerMapper.updateOwnerUserIdById(customer.getId(), null);
         if (updateOwnerUserIncr == 0) {
@@ -467,6 +492,11 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         // 注意：需要放在 contactService 后面，不然【客户】数据权限已经被删除，无法操作！
         permissionService.deletePermission(CrmBizTypeEnum.CRM_CUSTOMER.getType(), customer.getId(),
                 CrmPermissionLevelEnum.OWNER.getLevel());
+        LocalDateTime now = LocalDateTime.now();
+        highSeasRecordService.insertRecord(customer.getId(), actionType, customer.getOwnerUserId(), null,
+                reason, operatorUserId, now);
+        ownerHistoryService.insertHistory(customer.getId(), actionType, customer.getOwnerUserId(), null,
+                reason, operatorUserId, now);
     }
 
     @LogRecord(type = CRM_CUSTOMER_TYPE, subType = CRM_CUSTOMER_RECEIVE_SUB_TYPE, bizNo = "{{#customer.id}}",
