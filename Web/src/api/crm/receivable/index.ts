@@ -14,7 +14,7 @@ export interface ReceivableVO {
     totalPrice: number
   }
   auditStatus: number
-  processInstanceId: number
+  processInstanceId?: string
   returnTime: Date
   returnType: number
   price: number

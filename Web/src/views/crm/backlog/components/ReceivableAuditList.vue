@@ -111,6 +111,7 @@
       <el-table-column align="center" fixed="right" :label="t('common.action')" min-width="180">
         <template #default="scope">
           <el-button
+            v-if="scope.row.processInstanceId"
             v-hasPermi="['crm:receivable:update']"
             link
             type="primary"
@@ -141,6 +142,7 @@ import { erpPriceTableColumnFormatter } from '@/utils'
 defineOptions({ name: 'CrmReceivableAuditList' })
 
 const { t } = useI18n('crm') // 国际化
+const message = useMessage() // 消息弹窗
 const loading = ref(true) // 列表的加载中
 const total = ref(0) // 列表的总页数
 const list = ref([]) // 列表的数据
@@ -170,6 +172,10 @@ const handleQuery = () => {
 
 /** 查看审批 */
 const handleProcessDetail = (row: ReceivableApi.ReceivableVO) => {
+  if (!row.processInstanceId) {
+    message.warning(t('crm.noProcessInstanceId'))
+    return
+  }
   push({ name: 'BpmProcessInstanceDetail', query: { id: row.processInstanceId } })
 }
 
