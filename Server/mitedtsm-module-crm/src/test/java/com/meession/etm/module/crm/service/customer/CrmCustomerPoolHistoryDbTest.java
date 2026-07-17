@@ -202,4 +202,16 @@ public class CrmCustomerPoolHistoryDbTest extends BaseDbUnitTest {
         assertEquals(2L, count);
     }
 
+    @Test
+    public void testReceiveCustomer_concurrentConflict() {
+        doNothing().when(adminUserApi).validateUserList(anyList());
+        when(adminUserApi.getUser(any())).thenReturn(null);
+        CrmCustomerDO customer = testDataFactory.createCustomerInPool(TENANT_ID);
+        customerMapper.updateOwnerUserIdById(customer.getId(), 999L);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> customerService.receiveCustomer(Arrays.asList(customer.getId()), 100L, true));
+        assertEquals(CUSTOMER_RECEIVE_CONCURRENT_CONFLICT.getCode(), exception.getCode());
+    }
+
 }
