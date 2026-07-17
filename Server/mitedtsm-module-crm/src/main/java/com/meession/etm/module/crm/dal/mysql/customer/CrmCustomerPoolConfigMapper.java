@@ -17,4 +17,11 @@ public interface CrmCustomerPoolConfigMapper extends BaseMapperX<CrmCustomerPool
         return selectOne(new LambdaQueryWrapperX<CrmCustomerPoolConfigDO>().last("LIMIT 1"));
     }
 
+    /**
+     * Locks the current tenant's configuration while a receive transaction validates its quota.
+     */
+    default CrmCustomerPoolConfigDO selectOneForUpdate() {
+        return selectOne(new LambdaQueryWrapperX<CrmCustomerPoolConfigDO>().last("LIMIT 1 FOR UPDATE"));
+    }
+
 }

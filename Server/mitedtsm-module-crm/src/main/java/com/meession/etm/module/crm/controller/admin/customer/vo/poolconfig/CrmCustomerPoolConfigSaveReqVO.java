@@ -35,6 +35,14 @@ public class CrmCustomerPoolConfigSaveReqVO {
     @DiffLogField(name = "提前提醒天数")
     private Integer notifyDays;
 
+    @Schema(description = "每用户每日领取上限，默认10", example = "10")
+    @DiffLogField(name = "每用户每日领取上限")
+    private Integer receiveLimitPerDay;
+
+    @Schema(description = "同一客户重复领取冷却天数，默认30", example = "30")
+    @DiffLogField(name = "同一客户重复领取冷却天数")
+    private Integer receiveCooldownDays;
+
     @AssertTrue(message = "未成交放入公海天数不能为空")
     @JsonIgnore
     public boolean isDealExpireDaysValid() {

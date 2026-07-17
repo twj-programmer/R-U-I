@@ -48,6 +48,15 @@ public interface CrmCustomerMapper extends BaseMapperX<CrmCustomerDO> {
                 .set(CrmCustomerDO::getOwnerUserId, ownerUserId));
     }
 
+    default int updateOwnerUserIdByIdAndNull(Long id, Long ownerUserId) {
+        return update(new LambdaUpdateWrapper<CrmCustomerDO>()
+                .eq(CrmCustomerDO::getId, id)
+                .isNull(CrmCustomerDO::getOwnerUserId)
+                .eq(CrmCustomerDO::getDeleted, false)
+                .set(CrmCustomerDO::getOwnerUserId, ownerUserId)
+                .set(CrmCustomerDO::getOwnerTime, LocalDateTime.now()));
+    }
+
     default PageResult<CrmCustomerDO> selectPage(CrmCustomerPageReqVO pageReqVO, Long ownerUserId) {
         MPJLambdaWrapperX<CrmCustomerDO> query = new MPJLambdaWrapperX<>();
         // 拼接数据权限的查询条件

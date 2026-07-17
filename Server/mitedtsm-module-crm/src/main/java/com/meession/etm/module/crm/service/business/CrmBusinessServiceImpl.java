@@ -524,6 +524,11 @@ public class CrmBusinessServiceImpl implements CrmBusinessService {
     }
 
     @Override
+    public Long getActiveBusinessCountByCustomerId(Long customerId) {
+        return businessMapper.selectActiveCountByCustomerId(customerId);
+    }
+
+    @Override
     public Long getBusinessCountByStatusTypeId(Long statusTypeId) {
         return businessMapper.selectCountByStatusTypeId(statusTypeId);
     }

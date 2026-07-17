@@ -202,4 +202,53 @@ public class CrmCustomerPoolHistoryDbTest extends BaseDbUnitTest {
         assertEquals(2L, count);
     }
 
+    @Test
+    public void testReceiveCustomer_concurrentConflict() {
+        doNothing().when(adminUserApi).validateUserList(anyList());
+        when(adminUserApi.getUser(any())).thenReturn(null);
+        CrmCustomerDO customer = testDataFactory.createCustomerInPool(TENANT_ID);
+        customerMapper.updateOwnerUserIdById(customer.getId(), 999L);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> customerService.receiveCustomer(Arrays.asList(customer.getId()), 100L, true));
+        assertEquals(CUSTOMER_RECEIVE_CONCURRENT_CONFLICT.getCode(), exception.getCode());
+    }
+
+    @Test
+    public void testPutCustomerPool_rejectsActiveBusiness() {
+        CrmCustomerDO customer = testDataFactory.createCustomer(TENANT_ID);
+        when(businessService.getActiveBusinessCountByCustomerId(customer.getId())).thenReturn(1L);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> customerService.putCustomerPool(customer.getId()));
+        assertEquals(CUSTOMER_PUT_POOL_FAIL_ACTIVE_BUSINESS.getCode(), exception.getCode());
+    }
+
+    @Test
+    public void testReceiveCustomer_rejectsEleventhDailyReceive() {
+        doNothing().when(adminUserApi).validateUserList(anyList());
+        when(adminUserApi.getUser(any())).thenReturn(null);
+        for (int i = 0; i < 10; i++) {
+            CrmCustomerDO customer = testDataFactory.createCustomerInPool(TENANT_ID);
+            customerService.receiveCustomer(Arrays.asList(customer.getId()), 300L, true);
+        }
+        CrmCustomerDO eleventh = testDataFactory.createCustomerInPool(TENANT_ID);
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> customerService.receiveCustomer(Arrays.asList(eleventh.getId()), 300L, true));
+        assertEquals(CUSTOMER_RECEIVE_EXCEED_DAILY_LIMIT.getCode(), exception.getCode());
+    }
+
+    @Test
+    public void testReceiveCustomer_rejectsCooldown() {
+        doNothing().when(adminUserApi).validateUserList(anyList());
+        when(adminUserApi.getUser(any())).thenReturn(null);
+        CrmCustomerDO customer = testDataFactory.createCustomerInPool(TENANT_ID);
+        customerService.receiveCustomer(Arrays.asList(customer.getId()), 400L, true);
+        customerMapper.updateOwnerUserIdById(customer.getId(), null);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> customerService.receiveCustomer(Arrays.asList(customer.getId()), 400L, true));
+        assertEquals(CUSTOMER_RECEIVE_COOLDOWN.getCode(), exception.getCode());
+    }
+
 }

@@ -24,4 +24,10 @@ public class CrmCustomerPoolConfigRespVO {
     @Schema(description = "提前提醒天数", example = "2")
     private Integer notifyDays;
 
+    @Schema(description = "每用户每日领取上限", example = "10")
+    private Integer receiveLimitPerDay;
+
+    @Schema(description = "同一客户重复领取冷却天数", example = "30")
+    private Integer receiveCooldownDays;
+
 }

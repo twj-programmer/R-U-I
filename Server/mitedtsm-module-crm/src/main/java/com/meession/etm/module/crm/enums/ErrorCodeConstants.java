@@ -67,6 +67,10 @@ public interface ErrorCodeConstants {
     ErrorCode CUSTOMER_CREATE_NAME_NOT_NULL = new ErrorCode(1_020_006_013, "客户名称不能为空！");
     ErrorCode CUSTOMER_NAME_EXISTS = new ErrorCode(1_020_006_014, "已存在名为【{}】的客户！");
     ErrorCode CUSTOMER_UPDATE_DEAL_STATUS_FAIL = new ErrorCode(1_020_006_015, "更新客户的成交状态失败，原因：已经是该状态，无需更新");
+    ErrorCode CUSTOMER_RECEIVE_EXCEED_DAILY_LIMIT = new ErrorCode(1_020_006_016, "领取客户失败，原因：超出每日领取上限");
+    ErrorCode CUSTOMER_RECEIVE_COOLDOWN = new ErrorCode(1_020_006_017, "领取客户失败，原因：该客户在冷却期内");
+    ErrorCode CUSTOMER_PUT_POOL_FAIL_ACTIVE_BUSINESS = new ErrorCode(1_020_006_018, "客户放入公海失败，原因：存在进行中的商机");
+    ErrorCode CUSTOMER_RECEIVE_CONCURRENT_CONFLICT = new ErrorCode(1_020_006_019, "领取客户失败，原因：已被他人领取");
 
     // ========== 权限管理 1_020_007_000 ==========
     ErrorCode CRM_PERMISSION_NOT_EXISTS = new ErrorCode(1_020_007_000, "数据权限不存在");
