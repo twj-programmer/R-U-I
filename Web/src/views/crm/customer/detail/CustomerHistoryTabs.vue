@@ -1,21 +1,43 @@
 <template>
   <el-tabs>
-    <el-tab-pane label="公海记录">
+    <el-tab-pane :label="t('crm.customer.history.highSeasTab')">
       <el-table :data="highSeasRecords" v-loading="loading" stripe>
-        <el-table-column prop="actionType" label="动作" min-width="120" />
-        <el-table-column prop="beforeOwnerUserId" label="原负责人" min-width="100" />
-        <el-table-column prop="afterOwnerUserId" label="新负责人" min-width="100" />
-        <el-table-column prop="reason" label="原因" min-width="180" />
-        <el-table-column prop="actionTime" label="操作时间" min-width="180" />
+        <el-table-column :label="t('crm.customer.history.action')" min-width="120">
+          <template #default="scope">{{ getActionLabel(scope.row.actionType) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('crm.customer.history.oldOwner')" min-width="120">
+          <template #default="scope">
+            {{ scope.row.beforeOwnerUserName || scope.row.beforeOwnerUserId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('crm.customer.history.newOwner')" min-width="120">
+          <template #default="scope">
+            {{ scope.row.afterOwnerUserName || scope.row.afterOwnerUserId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="operatorUserName" :label="t('crm.customer.history.operator')" min-width="120" />
+        <el-table-column prop="reason" :label="t('crm.customer.history.reason')" min-width="180" />
+        <el-table-column prop="actionTime" :label="t('crm.customer.history.operationTime')" min-width="180" />
       </el-table>
     </el-tab-pane>
-    <el-tab-pane label="负责人历史">
+    <el-tab-pane :label="t('crm.customer.history.ownerHistoryTab')">
       <el-table :data="ownerHistories" v-loading="loading" stripe>
-        <el-table-column prop="changeType" label="变更类型" min-width="120" />
-        <el-table-column prop="oldOwnerUserId" label="原负责人" min-width="100" />
-        <el-table-column prop="newOwnerUserId" label="新负责人" min-width="100" />
-        <el-table-column prop="reason" label="原因" min-width="180" />
-        <el-table-column prop="changeTime" label="变更时间" min-width="180" />
+        <el-table-column :label="t('crm.customer.history.changeType')" min-width="120">
+          <template #default="scope">{{ getActionLabel(scope.row.changeType) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('crm.customer.history.oldOwner')" min-width="120">
+          <template #default="scope">
+            {{ scope.row.oldOwnerUserName || scope.row.oldOwnerUserId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('crm.customer.history.newOwner')" min-width="120">
+          <template #default="scope">
+            {{ scope.row.newOwnerUserName || scope.row.newOwnerUserId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="operatorUserName" :label="t('crm.customer.history.operator')" min-width="120" />
+        <el-table-column prop="reason" :label="t('crm.customer.history.reason')" min-width="180" />
+        <el-table-column prop="changeTime" :label="t('crm.customer.history.changeTime')" min-width="180" />
       </el-table>
     </el-tab-pane>
   </el-tabs>
@@ -25,9 +47,23 @@
 import * as CustomerHistoryApi from '@/api/crm/customer/history'
 
 const props = defineProps<{ customerId: number }>()
+const { t } = useI18n()
 const loading = ref(false)
 const highSeasRecords = ref<CustomerHistoryApi.HighSeasRecordVO[]>([])
 const ownerHistories = ref<CustomerHistoryApi.CustomerOwnerHistoryVO[]>([])
+
+const actionLocaleKeys: Record<string, string> = {
+  MANUAL_PUT: 'crm.customer.history.manualPut',
+  AUTO_PUT: 'crm.customer.history.autoPut',
+  RECEIVE: 'crm.customer.history.receive',
+  ASSIGN: 'crm.customer.history.assign',
+  TRANSFER: 'crm.customer.history.transfer'
+}
+
+const getActionLabel = (value?: string) => {
+  const localeKey = value ? actionLocaleKeys[value] : undefined
+  return localeKey ? t(localeKey) : value || '-'
+}
 
 const load = async () => {
   if (!props.customerId) return

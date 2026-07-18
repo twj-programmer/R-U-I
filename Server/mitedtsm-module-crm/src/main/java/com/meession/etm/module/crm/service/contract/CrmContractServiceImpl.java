@@ -98,7 +98,6 @@ public class CrmContractServiceImpl implements CrmContractService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CrmPermission(bizType = CrmBizTypeEnum.CRM_CONTRACT, bizId = "#id", level = CrmPermissionLevelEnum.WRITE)
     @LogRecord(type = CRM_CONTRACT_TYPE, subType = CRM_CONTRACT_CREATE_SUB_TYPE, bizNo = "{{#contract.id}}",
             success = CRM_CONTRACT_CREATE_SUCCESS)
     public Long createContract(CrmContractSaveReqVO createReqVO, Long userId) {

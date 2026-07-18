@@ -1,7 +1,7 @@
 -- D2-CUS-02: customer pool and owner history. MySQL 8.0 migration.
 
 CREATE TABLE IF NOT EXISTS `crm_high_seas_record` (
-    `id` BIGINT NOT NULL COMMENT 'ID',
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `tenant_id` BIGINT NOT NULL COMMENT 'tenant ID',
     `customer_id` BIGINT NOT NULL COMMENT 'customer ID',
     `action_type` VARCHAR(32) NOT NULL COMMENT 'MANUAL_PUT, AUTO_PUT or RECEIVE',
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `crm_high_seas_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='CRM customer pool history';
 
 CREATE TABLE IF NOT EXISTS `crm_customer_owner_history` (
-    `id` BIGINT NOT NULL COMMENT 'ID',
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `tenant_id` BIGINT NOT NULL COMMENT 'tenant ID',
     `customer_id` BIGINT NOT NULL COMMENT 'customer ID',
     `change_type` VARCHAR(32) NOT NULL COMMENT 'ASSIGN, TRANSFER, RECEIVE, MANUAL_PUT or AUTO_PUT',
@@ -42,6 +42,19 @@ CREATE PROCEDURE `migrate_d2_customer_pool_history`()
 BEGIN
     DECLARE parent_count INT DEFAULT 0;
     DECLARE parent_menu_id BIGINT DEFAULT NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = DATABASE() AND table_name = 'crm_high_seas_record'
+                     AND column_name = 'id' AND extra LIKE '%auto_increment%') THEN
+        ALTER TABLE `crm_high_seas_record`
+            MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = DATABASE() AND table_name = 'crm_customer_owner_history'
+                     AND column_name = 'id' AND extra LIKE '%auto_increment%') THEN
+        ALTER TABLE `crm_customer_owner_history`
+            MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID';
+    END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.statistics
                    WHERE table_schema = DATABASE() AND table_name = 'crm_high_seas_record'

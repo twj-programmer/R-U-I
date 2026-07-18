@@ -80,7 +80,6 @@ public class CrmReceivableServiceImpl implements CrmReceivableService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CrmPermission(bizType = CrmBizTypeEnum.CRM_RECEIVABLE, bizId = "#id", level = CrmPermissionLevelEnum.WRITE)
     @LogRecord(type = CRM_RECEIVABLE_TYPE, subType = CRM_RECEIVABLE_CREATE_SUB_TYPE, bizNo = "{{#receivable.id}}",
             success = CRM_RECEIVABLE_CREATE_SUCCESS)
     public Long createReceivable(CrmReceivableSaveReqVO createReqVO) {

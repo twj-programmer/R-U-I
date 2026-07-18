@@ -131,9 +131,9 @@ services:
     image: mitedtsm-server:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${SERVER_PORT:-8080}:8080"
+      - "0.0.0.0:${SERVER_PORT:-8080}:8080"
     environment:
-      # Local-only deployment: keep the backend on HTTP behind local Nginx.
+      # LAN deployment: keep the backend on HTTP; Windows Firewall limits access to LocalSubnet.
       SERVER_SSL_ENABLED: "false"
       # The packaged Docker profile still points the lazy slave datasource at
       # container-local 127.0.0.1. Route it to the Compose MySQL service.
@@ -158,7 +158,7 @@ services:
     image: nginx:stable-alpine
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${WEB_PORT:-80}:80"
+      - "0.0.0.0:${WEB_PORT:-80}:80"
     volumes:
       - ../Web/dist-prod:/usr/share/nginx/html:ro
       - ./nginx/web.conf:/etc/nginx/conf.d/default.conf:ro
@@ -176,7 +176,7 @@ services:
     image: nginx:stable-alpine
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${MALL_PORT:-81}:80"
+      - "0.0.0.0:${MALL_PORT:-81}:80"
     volumes:
       - ../MallFrontend/unpackage/dist/build/web:/usr/share/nginx/html:ro
       - ./nginx/mall.conf:/etc/nginx/conf.d/default.conf:ro

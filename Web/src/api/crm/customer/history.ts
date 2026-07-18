@@ -5,9 +5,12 @@ export interface HighSeasRecordVO {
   customerId: number
   actionType: string
   beforeOwnerUserId?: number
+  beforeOwnerUserName?: string
   afterOwnerUserId?: number
+  afterOwnerUserName?: string
   reason?: string
   operatorUserId: number
+  operatorUserName?: string
   actionTime: string
 }
 
@@ -16,9 +19,12 @@ export interface CustomerOwnerHistoryVO {
   customerId: number
   changeType: string
   oldOwnerUserId?: number
+  oldOwnerUserName?: string
   newOwnerUserId?: number
+  newOwnerUserName?: string
   reason?: string
   operatorUserId: number
+  operatorUserName?: string
   changeTime: string
 }
 

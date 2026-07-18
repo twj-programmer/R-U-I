@@ -180,42 +180,49 @@
           <dict-tag :type="DICT_TYPE.CRM_AUDIT_STATUS" :value="scope.row.auditStatus" />
         </template>
       </el-table-column>
-      <el-table-column align="center" fixed="right" :label="t('common.action')" min-width="180">
+      <el-table-column
+        fixed="right"
+        :label="t('common.action')"
+        width="260"
+        :show-overflow-tooltip="false"
+      >
         <template #default="scope">
-          <el-button
-            v-hasPermi="['crm:receivable:update']"
-            link
-            type="primary"
-            @click="openForm('update', scope.row.id)"
-          >
-            {{ t('common.edit') }}
-          </el-button>
-          <el-button
-            v-if="scope.row.auditStatus === 0"
-            v-hasPermi="['crm:receivable:update']"
-            link
-            type="primary"
-            @click="handleSubmit(scope.row)"
-          >
-            {{ t('contract.submitAudit') }}
-          </el-button>
-          <el-button
-            v-else-if="scope.row.processInstanceId"
-            v-hasPermi="['crm:receivable:update']"
-            link
-            type="primary"
-            @click="handleProcessDetail(scope.row)"
-          >
-            {{ t('contract.viewApproval') }}
-          </el-button>
-          <el-button
-            v-hasPermi="['crm:receivable:delete']"
-            link
-            type="danger"
-            @click="handleDelete(scope.row.id)"
-          >
-            {{ t('common.delete') }}
-          </el-button>
+          <div class="receivable-action-buttons">
+            <el-button
+              v-hasPermi="['crm:receivable:update']"
+              link
+              type="primary"
+              @click="openForm('update', scope.row.id)"
+            >
+              {{ t('common.edit') }}
+            </el-button>
+            <el-button
+              v-if="scope.row.auditStatus === 0"
+              v-hasPermi="['crm:receivable:update']"
+              link
+              type="primary"
+              @click="handleSubmit(scope.row)"
+            >
+              {{ t('contract.submitAudit') }}
+            </el-button>
+            <el-button
+              v-else-if="scope.row.processInstanceId"
+              v-hasPermi="['crm:receivable:update']"
+              link
+              type="primary"
+              @click="handleProcessDetail(scope.row)"
+            >
+              {{ t('contract.viewApproval') }}
+            </el-button>
+            <el-button
+              v-hasPermi="['crm:receivable:delete']"
+              link
+              type="danger"
+              @click="handleDelete(scope.row.id)"
+            >
+              {{ t('common.delete') }}
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -366,3 +373,16 @@ onMounted(async () => {
   customerList.value = await CustomerApi.getCustomerSimpleList()
 })
 </script>
+
+<style scoped>
+.receivable-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.receivable-action-buttons :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+</style>

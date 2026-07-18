@@ -140,6 +140,23 @@ export default {
       notifyDaysBefore: 'Advance',
       notifyDaysAfter: 'days to notify',
       enabledRequired: 'Customer pool enabled cannot be empty'
+    },
+    history: {
+      highSeasTab: 'Pool Records',
+      ownerHistoryTab: 'Owner History',
+      action: 'Action',
+      changeType: 'Change Type',
+      oldOwner: 'Previous Owner',
+      newOwner: 'New Owner',
+      operator: 'Operator',
+      reason: 'Reason',
+      operationTime: 'Operation Time',
+      changeTime: 'Change Time',
+      manualPut: 'Manual Pool Entry',
+      autoPut: 'Automatic Pool Entry',
+      receive: 'Receive',
+      assign: 'Assign',
+      transfer: 'Transfer'
     }
   },
   contact: {

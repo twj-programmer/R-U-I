@@ -140,6 +140,23 @@ export default {
       notifyDaysBefore: '提前',
       notifyDaysAfter: '天提醒',
       enabledRequired: '是否启用客户公海不能为空'
+    },
+    history: {
+      highSeasTab: '公海记录',
+      ownerHistoryTab: '负责人历史',
+      action: '动作',
+      changeType: '变更类型',
+      oldOwner: '原负责人',
+      newOwner: '新负责人',
+      operator: '操作人',
+      reason: '原因',
+      operationTime: '操作时间',
+      changeTime: '变更时间',
+      manualPut: '手动放入公海',
+      autoPut: '自动放入公海',
+      receive: '领取',
+      assign: '分配',
+      transfer: '转移'
     }
   },
   contact: {
