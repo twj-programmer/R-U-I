@@ -20,6 +20,12 @@ public interface CrmCustomerPoolConfigService {
     CrmCustomerPoolConfigDO getCustomerPoolConfig();
 
     /**
+     * Gets a configuration row for the current tenant and locks it for a receive transaction.
+     * A missing row is created with the V1.5 defaults and then read again under the row lock.
+     */
+    CrmCustomerPoolConfigDO getOrCreateCustomerPoolConfigForUpdate();
+
+    /**
      * 保存客户公海配置
      *
      * @param saveReqVO 更新信息

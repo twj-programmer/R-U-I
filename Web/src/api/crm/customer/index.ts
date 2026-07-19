@@ -130,3 +130,29 @@ export const distributeCustomer = async (ids: any[], ownerUserId: number) => {
 export const putCustomerPool = async (id: number) => {
   return await request.put({ url: `/crm/customer/put-pool?id=${id}` })
 }
+
+// ======================= 客户查重 =======================
+
+export interface CustomerDuplicateCheckReqVO {
+  name: string
+  mobile?: string
+  excludeId?: number
+}
+
+export interface CustomerDuplicateItemVO {
+  id: number
+  name: string
+  mobileMasked: string
+  matchType: string
+  similarity: number
+}
+
+export interface CustomerDuplicateCheckRespVO {
+  hasDuplicate: boolean
+  candidates: CustomerDuplicateItemVO[]
+}
+
+// 客户查重
+export const checkCustomerDuplicate = async (data: CustomerDuplicateCheckReqVO) => {
+  return await request.post({ url: `/crm/customer/check-duplicate`, data })
+}

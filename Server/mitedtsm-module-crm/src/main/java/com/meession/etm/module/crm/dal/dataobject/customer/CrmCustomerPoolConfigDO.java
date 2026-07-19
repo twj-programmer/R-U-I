@@ -49,4 +49,14 @@ public class CrmCustomerPoolConfigDO extends BaseDO {
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Integer notifyDays;
 
+    /**
+     * 每用户每日领取上限，默认10
+     */
+    private Integer receiveLimitPerDay;
+
+    /**
+     * 同一客户重复领取冷却天数，默认30
+     */
+    private Integer receiveCooldownDays;
+
 }

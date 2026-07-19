@@ -39,6 +39,24 @@
             </el-select>
           </el-form-item>
         </el-col>
+        <el-col :span="8">
+          <el-form-item :label="t('receivable.auditStatus')" prop="auditStatus">
+            <el-select
+              v-model="queryParams.auditStatus"
+              class="!w-240px"
+              :placeholder="t('common.status')"
+              clearable
+              @change="handleQuery"
+            >
+              <el-option
+                v-for="(option, index) in AUDIT_STATUS"
+                :label="option.label"
+                :value="option.value"
+                :key="index"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
       </el-row>
       <el-row>
         <el-col :span="24">
@@ -162,42 +180,49 @@
           <dict-tag :type="DICT_TYPE.CRM_AUDIT_STATUS" :value="scope.row.auditStatus" />
         </template>
       </el-table-column>
-      <el-table-column align="center" fixed="right" :label="t('common.action')" min-width="180">
+      <el-table-column
+        fixed="right"
+        :label="t('common.action')"
+        width="260"
+        :show-overflow-tooltip="false"
+      >
         <template #default="scope">
-          <el-button
-            v-hasPermi="['crm:receivable:update']"
-            link
-            type="primary"
-            @click="openForm('update', scope.row.id)"
-          >
-            {{ t('common.edit') }}
-          </el-button>
-          <el-button
-            v-if="scope.row.auditStatus === 0"
-            v-hasPermi="['crm:receivable:update']"
-            link
-            type="primary"
-            @click="handleSubmit(scope.row)"
-          >
-            {{ t('contract.submitAudit') }}
-          </el-button>
-          <el-button
-            v-else
-            v-hasPermi="['crm:receivable:update']"
-            link
-            type="primary"
-            @click="handleProcessDetail(scope.row)"
-          >
-            {{ t('contract.viewApproval') }}
-          </el-button>
-          <el-button
-            v-hasPermi="['crm:receivable:delete']"
-            link
-            type="danger"
-            @click="handleDelete(scope.row.id)"
-          >
-            {{ t('common.delete') }}
-          </el-button>
+          <div class="receivable-action-buttons">
+            <el-button
+              v-hasPermi="['crm:receivable:update']"
+              link
+              type="primary"
+              @click="openForm('update', scope.row.id)"
+            >
+              {{ t('common.edit') }}
+            </el-button>
+            <el-button
+              v-if="scope.row.auditStatus === 0"
+              v-hasPermi="['crm:receivable:update']"
+              link
+              type="primary"
+              @click="handleSubmit(scope.row)"
+            >
+              {{ t('contract.submitAudit') }}
+            </el-button>
+            <el-button
+              v-else-if="scope.row.processInstanceId"
+              v-hasPermi="['crm:receivable:update']"
+              link
+              type="primary"
+              @click="handleProcessDetail(scope.row)"
+            >
+              {{ t('contract.viewApproval') }}
+            </el-button>
+            <el-button
+              v-hasPermi="['crm:receivable:delete']"
+              link
+              type="danger"
+              @click="handleDelete(scope.row.id)"
+            >
+              {{ t('common.delete') }}
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -222,6 +247,7 @@ import ReceivableForm from './ReceivableForm.vue'
 import * as CustomerApi from '@/api/crm/customer'
 import { TabsPaneContext } from 'element-plus'
 import { erpPriceTableColumnFormatter } from '@/utils'
+import { AUDIT_STATUS } from '../backlog/components/common'
 
 defineOptions({ name: 'Receivable' })
 
@@ -235,7 +261,8 @@ const queryParams = reactive({
   pageSize: 10,
   sceneType: '1', // 默认与 activeName 相等
   no: undefined,
-  customerId: undefined
+  customerId: undefined,
+  auditStatus: undefined
 })
 const queryFormRef = ref() // 搜索的表单
 const exportLoading = ref(false) // 导出的加载中
@@ -301,6 +328,10 @@ const handleSubmit = async (row: ReceivableApi.ReceivableVO) => {
 
 /** 查看审批 */
 const handleProcessDetail = (row: ReceivableApi.ReceivableVO) => {
+  if (!row.processInstanceId) {
+    message.warning(t('crm.noProcessInstanceId'))
+    return
+  }
   push({ name: 'BpmProcessInstanceDetail', query: { id: row.processInstanceId } })
 }
 
@@ -342,3 +373,16 @@ onMounted(async () => {
   customerList.value = await CustomerApi.getCustomerSimpleList()
 })
 </script>
+
+<style scoped>
+.receivable-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.receivable-action-buttons :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+</style>

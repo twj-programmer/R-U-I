@@ -1,33 +1,37 @@
+// 23计科4班 黄金戈
 import request from '@/config/axios'
+
+export interface BusinessStatusVO {
+  id: number
+  name: string
+  percent: number
+  sort: number
+}
 
 export interface BusinessStatusTypeVO {
   id: number
   name: string
   deptIds: number[]
-  statuses?: {
-    id: number
-    name: string
-    percent: number
-  }
+  statuses?: BusinessStatusVO[]
 }
 
 export const DEFAULT_STATUSES = [
   {
     endStatus: 1,
-    key: '结束',
-    name: '赢单',
+    key: 'end',
+    nameKey: 'crm.business.endStatusWin',
     percent: 100
   },
   {
     endStatus: 2,
-    key: '结束',
-    name: '输单',
+    key: 'end',
+    nameKey: 'crm.business.endStatusLose',
     percent: 0
   },
   {
     endStatus: 3,
-    key: '结束',
-    name: '无效',
+    key: 'end',
+    nameKey: 'crm.business.endStatusInvalid',
     percent: 0
   }
 ]
@@ -63,6 +67,8 @@ export const getBusinessStatusTypeSimpleList = async () => {
 }
 
 // 获得商机阶段列表
-export const getBusinessStatusSimpleList = async (typeId: number) => {
+export const getBusinessStatusSimpleList = async (
+  typeId: number
+): Promise<BusinessStatusVO[]> => {
   return await request.get({ url: `/crm/business-status/status-simple-list`, params: { typeId } })
 }

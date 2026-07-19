@@ -211,51 +211,58 @@
           <dict-tag :type="DICT_TYPE.CRM_AUDIT_STATUS" :value="scope.row.auditStatus" />
         </template>
       </el-table-column>
-      <el-table-column fixed="right" :label="t('common.action')" min-width="250">
+      <el-table-column
+        fixed="right"
+        :label="t('common.action')"
+        width="320"
+        :show-overflow-tooltip="false"
+      >
         <template #default="scope">
-          <el-button
-            v-if="scope.row.auditStatus === 0"
-            v-hasPermi="['crm:contract:update']"
-            link
-            type="primary"
-            @click="openForm('update', scope.row.id)"
-          >
-            {{ t('common.edit') }}
-          </el-button>
-          <el-button
-            v-if="scope.row.auditStatus === 0"
-            v-hasPermi="['crm:contract:update']"
-            link
-            type="primary"
-            @click="handleSubmit(scope.row)"
-          >
-            {{ t('crm.contract.submitAudit') }}
-          </el-button>
-          <el-button
-            v-else
-            link
-            v-hasPermi="['crm:contract:update']"
-            type="primary"
-            @click="handleProcessDetail(scope.row)"
-          >
-            {{ t('crm.contract.viewApproval') }}
-          </el-button>
-          <el-button
-            v-hasPermi="['crm:contract:query']"
-            link
-            type="primary"
-            @click="openDetail(scope.row.id)"
-          >
-            {{ t('common.detail') }}
-          </el-button>
-          <el-button
-            v-hasPermi="['crm:contract:delete']"
-            link
-            type="danger"
-            @click="handleDelete(scope.row.id)"
-          >
-            {{ t('common.del') }}
-          </el-button>
+          <div class="contract-action-buttons">
+            <el-button
+              v-if="scope.row.auditStatus === 0"
+              v-hasPermi="['crm:contract:update']"
+              link
+              type="primary"
+              @click="openForm('update', scope.row.id)"
+            >
+              {{ t('common.edit') }}
+            </el-button>
+            <el-button
+              v-if="scope.row.auditStatus === 0"
+              v-hasPermi="['crm:contract:update']"
+              link
+              type="primary"
+              @click="handleSubmit(scope.row)"
+            >
+              {{ t('crm.contract.submitAudit') }}
+            </el-button>
+            <el-button
+              v-else-if="scope.row.processInstanceId"
+              link
+              v-hasPermi="['crm:contract:update']"
+              type="primary"
+              @click="handleProcessDetail(scope.row)"
+            >
+              {{ t('crm.contract.viewApproval') }}
+            </el-button>
+            <el-button
+              v-hasPermi="['crm:contract:query']"
+              link
+              type="primary"
+              @click="openDetail(scope.row.id)"
+            >
+              {{ t('common.detail') }}
+            </el-button>
+            <el-button
+              v-hasPermi="['crm:contract:delete']"
+              link
+              type="danger"
+              @click="handleDelete(scope.row.id)"
+            >
+              {{ t('common.del') }}
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -376,6 +383,10 @@ const handleSubmit = async (row: ContractApi.ContractVO) => {
 
 /** 查看审批 */
 const handleProcessDetail = (row: ContractApi.ContractVO) => {
+  if (!row.processInstanceId) {
+    message.warning(t('crm.contract.noProcessInstanceId'))
+    return
+  }
   push({ name: 'BpmProcessInstanceDetail', query: { id: row.processInstanceId } })
 }
 
@@ -406,3 +417,16 @@ onMounted(async () => {
   customerList.value = await CustomerApi.getCustomerSimpleList()
 })
 </script>
+
+<style scoped>
+.contract-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.contract-action-buttons :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+</style>

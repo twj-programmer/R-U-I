@@ -8,6 +8,8 @@ import com.mzt.logapi.context.LogRecordContext;
 import com.mzt.logapi.starter.annotation.LogRecord;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Objects;
@@ -28,7 +30,42 @@ public class CrmCustomerPoolConfigServiceImpl implements CrmCustomerPoolConfigSe
 
     @Override
     public CrmCustomerPoolConfigDO getCustomerPoolConfig() {
-        return customerPoolConfigMapper.selectOne();
+        CrmCustomerPoolConfigDO config = customerPoolConfigMapper.selectOne();
+        if (config == null) {
+            return null;
+        }
+        if (config.getReceiveLimitPerDay() == null) {
+            config.setReceiveLimitPerDay(10);
+        }
+        if (config.getReceiveCooldownDays() == null) {
+            config.setReceiveCooldownDays(30);
+        }
+        return config;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public CrmCustomerPoolConfigDO getOrCreateCustomerPoolConfigForUpdate() {
+        CrmCustomerPoolConfigDO config = customerPoolConfigMapper.selectOneForUpdate();
+        if (config == null) {
+            try {
+                customerPoolConfigMapper.insert(CrmCustomerPoolConfigDO.builder()
+                        .enabled(false).receiveLimitPerDay(10).receiveCooldownDays(30).build());
+            } catch (DuplicateKeyException ignored) {
+                // Another receive transaction created the tenant row first. Re-read it below.
+            }
+            config = customerPoolConfigMapper.selectOneForUpdate();
+        }
+        if (config == null) {
+            throw new IllegalStateException("CRM customer pool configuration was not created");
+        }
+        if (config.getReceiveLimitPerDay() == null) {
+            config.setReceiveLimitPerDay(10);
+        }
+        if (config.getReceiveCooldownDays() == null) {
+            config.setReceiveCooldownDays(30);
+        }
+        return config;
     }
 
     @Override

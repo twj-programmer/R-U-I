@@ -32,6 +32,11 @@ GET {{baseUrl}}/crm/statistics-customer/get-contract-summary?deptId=100&interval
 Authorization: Bearer {{token}}
 tenant-id: {{adminTenantId}}
 
+### 4.2 导出客户转化明细
+GET {{baseUrl}}/crm/statistics-customer/export-contract-summary?deptId=100&interval=2&times[0]=2023-01-01 00:00:00&times[1]=2024-12-12 23:59:59
+Authorization: Bearer {{token}}
+tenant-id: {{adminTenantId}}
+
 # == 5. 客户成交周期 ==
 ### 5.1 获取客户公海分析(按日期)
 GET {{baseUrl}}/crm/statistics-customer/get-pool-summary-by-date?deptId=100&interval=2&times[0]=2023-01-01 00:00:00&times[1]=2024-12-12 23:59:59

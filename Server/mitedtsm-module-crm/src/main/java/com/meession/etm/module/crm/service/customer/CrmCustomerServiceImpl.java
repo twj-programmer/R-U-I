@@ -9,6 +9,7 @@ import com.meession.etm.framework.common.exception.ServiceException;
 import com.meession.etm.framework.common.pojo.PageResult;
 import com.meession.etm.framework.common.util.collection.CollectionUtils;
 import com.meession.etm.framework.common.util.object.BeanUtils;
+import com.meession.etm.framework.tenant.core.context.TenantContextHolder;
 import com.meession.etm.module.crm.controller.admin.business.vo.business.CrmBusinessTransferReqVO;
 import com.meession.etm.module.crm.controller.admin.contact.vo.CrmContactTransferReqVO;
 import com.meession.etm.module.crm.controller.admin.contract.vo.contract.CrmContractTransferReqVO;
@@ -44,10 +45,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 import static com.meession.etm.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.meession.etm.framework.common.util.collection.CollectionUtils.filterList;
+import static com.meession.etm.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 import static com.meession.etm.module.crm.enums.ErrorCodeConstants.*;
 import static com.meession.etm.module.crm.enums.LogRecordConstants.*;
 import static com.meession.etm.module.crm.enums.customer.CrmCustomerLimitConfigTypeEnum.CUSTOMER_LOCK_LIMIT;
@@ -86,6 +89,14 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
 
     @Resource
     private AdminUserApi adminUserApi;
+
+    @Resource
+    @Lazy
+    private CrmHighSeasRecordService highSeasRecordService;
+
+    @Resource
+    @Lazy
+    private CrmCustomerOwnerHistoryService ownerHistoryService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -214,6 +225,9 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         // 2.2 转移后重新设置负责人
         customerMapper.updateById(new CrmCustomerDO().setId(reqVO.getId())
                 .setOwnerUserId(reqVO.getNewOwnerUserId()).setOwnerTime(LocalDateTime.now()));
+
+        ownerHistoryService.insertHistory(customer.getId(), "TRANSFER", customer.getOwnerUserId(),
+                reqVO.getNewOwnerUserId(), "客户负责人转移", userId, LocalDateTime.now());
 
         // 2.3 同时转移
         if (CollUtil.isNotEmpty(reqVO.getToBizTypes())) {
@@ -374,9 +388,12 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         validateCustomerOwnerExists(customer, true);
         // 1.3. 校验客户是否锁定
         validateCustomerIsLocked(customer, true);
+        if (businessService.getActiveBusinessCountByCustomerId(customer.getId()) > 0) {
+            throw exception(CUSTOMER_PUT_POOL_FAIL_ACTIVE_BUSINESS);
+        }
 
         // 2. 客户放入公海
-        putCustomerPool(customer);
+        putCustomerPool(customer, "MANUAL_PUT", getLoginUserId(), "手动移入公海");
 
         // 记录操作日志上下文
         LogRecordContext.putVariable("customerName", customer.getName());
@@ -394,39 +411,79 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         adminUserApi.validateUserList(singletonList(ownerUserId));
         // 1.3 校验状态
         customers.forEach(customer -> {
-            // 校验是否已有负责人
-            validateCustomerOwnerExists(customer, false);
-            // 校验是否锁定
+            // 领取时由后续的“owner_user_id IS NULL”条件更新原子判定公海状态，
+            // 避免先读后写造成并发下返回错误的业务状态。
+            if (!Boolean.TRUE.equals(isReceive)) {
+                validateCustomerOwnerExists(customer, false);
+            }
             validateCustomerIsLocked(customer, false);
-            // 校验成交状态
             validateCustomerDeal(customer);
         });
-        // 1.4  校验负责人是否到达上限
+        // 1.4 校验负责人是否到达上限
         validateCustomerExceedOwnerLimit(ownerUserId, customers.size());
 
-        // 2. 领取公海数据
-        List<CrmCustomerDO> updateCustomers = new ArrayList<>();
-        List<CrmPermissionCreateReqBO> createPermissions = new ArrayList<>();
-        customers.forEach(customer -> {
-            // 2.1. 设置负责人
-            updateCustomers.add(new CrmCustomerDO().setId(customer.getId())
-                    .setOwnerUserId(ownerUserId).setOwnerTime(LocalDateTime.now()));
-            // 2.2. 创建负责人数据权限
-            createPermissions.add(new CrmPermissionCreateReqBO().setBizType(CrmBizTypeEnum.CRM_CUSTOMER.getType())
-                    .setBizId(customer.getId()).setUserId(ownerUserId).setLevel(CrmPermissionLevelEnum.OWNER.getLevel()));
-        });
-        // 2.2 更新客户负责人
-        customerMapper.updateBatch(updateCustomers);
-        // 2.3 创建负责人数据权限
-        permissionService.createPermissionBatch(createPermissions);
-        // TODO @芋艿：要不要处理关联的联系人？？？
+        CrmCustomerPoolConfigDO poolConfig = customerPoolConfigService.getOrCreateCustomerPoolConfigForUpdate();
+        Long tenantId = TenantContextHolder.getTenantId();
+        LocalDateTime now = LocalDateTime.now();
+        if (Boolean.TRUE.equals(isReceive)) {
+            LocalDateTime dayStart = now.toLocalDate().atStartOfDay();
+            LocalDateTime nextDayStart = dayStart.plusDays(1);
+            long receivedToday = highSeasRecordService.getReceiveCountByUserIdAndDateRange(
+                    tenantId, ownerUserId, dayStart, nextDayStart);
+            if (receivedToday + customers.size() > poolConfig.getReceiveLimitPerDay()) {
+                throw exception(CUSTOMER_RECEIVE_EXCEED_DAILY_LIMIT);
+            }
+            LocalDateTime cooldownStart = now.minusDays(poolConfig.getReceiveCooldownDays());
+            for (CrmCustomerDO customer : customers) {
+                if (highSeasRecordService.getReceiveCountByCustomerIdAndTimeRange(
+                        tenantId, customer.getId(), ownerUserId, cooldownStart, now) > 0) {
+                    throw exception(CUSTOMER_RECEIVE_COOLDOWN);
+                }
+            }
+        }
+
+        // 2. 领取公海数据（逐条处理，确保并发安全）
+        List<CrmCustomerDO> successCustomers = new ArrayList<>();
+        Long operatorUserId = isReceive ? ownerUserId : getLoginUserId();
+        // 定时任务或测试环境可能没有登录上下文；0 统一表示系统操作，不能写入 NULL。
+        if (operatorUserId == null) {
+            operatorUserId = 0L;
+        }
+        AdminUserRespDTO operatorUser = adminUserApi.getUser(operatorUserId);
+        String operatorUserName = operatorUser != null ? operatorUser.getNickname() : "";
+
+        for (CrmCustomerDO customer : customers) {
+            int updateCount = customerMapper.updateOwnerUserIdByIdAndNull(customer.getId(), ownerUserId);
+            if (updateCount == 0) {
+                throw exception(CUSTOMER_RECEIVE_CONCURRENT_CONFLICT);
+            }
+            successCustomers.add(customer);
+
+            // 2.2 创建负责人数据权限
+            permissionService.createPermission(new CrmPermissionCreateReqBO()
+                    .setBizType(CrmBizTypeEnum.CRM_CUSTOMER.getType())
+                    .setBizId(customer.getId())
+                    .setUserId(ownerUserId)
+                    .setLevel(CrmPermissionLevelEnum.OWNER.getLevel()));
+
+            // 2.3 联系人负责人同步
+            contactService.updateOwnerUserIdByCustomerId(customer.getId(), ownerUserId);
+
+            // 2.4 写入历史记录
+            if (isReceive) {
+                highSeasRecordService.insertRecord(customer.getId(), "RECEIVE",
+                        null, ownerUserId, "领取公海客户", operatorUserId, now);
+            }
+            ownerHistoryService.insertHistory(customer.getId(), isReceive ? "RECEIVE" : "ASSIGN",
+                    null, ownerUserId, isReceive ? "领取公海客户" : "分配公海客户", operatorUserId, now);
+        }
 
         // 3. 记录操作日志
         AdminUserRespDTO user = null;
         if (!isReceive) {
             user = adminUserApi.getUser(ownerUserId);
         }
-        for (CrmCustomerDO customer : customers) {
+        for (CrmCustomerDO customer : successCustomers) {
             getSelf().receiveCustomerLog(customer, user == null ? null : user.getNickname());
         }
     }
@@ -437,36 +494,36 @@ public class CrmCustomerServiceImpl implements CrmCustomerService {
         if (poolConfig == null || !poolConfig.getEnabled()) {
             return 0;
         }
-        // 1. 获得需要放到的客户列表
         List<CrmCustomerDO> customerList = customerMapper.selectListByAutoPool(poolConfig);
-        // 2. 逐个放入公海
         int count = 0;
         for (CrmCustomerDO customer : customerList) {
             try {
-                getSelf().putCustomerPool(customer);
+                getSelf().putCustomerPool(customer, "AUTO_PUT", 0L, "自动移入公海");
                 count++;
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 log.error("[autoPutCustomerPool][客户({}) 放入公海异常]", customer.getId(), e);
             }
         }
         return count;
     }
 
-    @Transactional(rollbackFor = Exception.class) // 需要 protected 修饰，因为需要在事务中调用
-    protected void putCustomerPool(CrmCustomerDO customer) {
-        // 1. 设置负责人为 NULL
+    @Transactional(rollbackFor = Exception.class)
+    protected void putCustomerPool(CrmCustomerDO customer, String actionType, Long operatorUserId, String reason) {
         int updateOwnerUserIncr = customerMapper.updateOwnerUserIdById(customer.getId(), null);
         if (updateOwnerUserIncr == 0) {
             throw exception(CUSTOMER_UPDATE_OWNER_USER_FAIL);
         }
 
-        // 2. 联系人的负责人，也要设置为 null。因为：因为领取后，负责人也要关联过来，这块和 receiveCustomer 是对应的
         contactService.updateOwnerUserIdByCustomerId(customer.getId(), null);
 
-        // 3. 删除负责人数据权限
-        // 注意：需要放在 contactService 后面，不然【客户】数据权限已经被删除，无法操作！
         permissionService.deletePermission(CrmBizTypeEnum.CRM_CUSTOMER.getType(), customer.getId(),
                 CrmPermissionLevelEnum.OWNER.getLevel());
+
+        LocalDateTime now = LocalDateTime.now();
+        highSeasRecordService.insertRecord(customer.getId(), actionType, customer.getOwnerUserId(), null,
+                reason, operatorUserId, now);
+        ownerHistoryService.insertHistory(customer.getId(), actionType, customer.getOwnerUserId(), null,
+                reason, operatorUserId, now);
     }
 
     @LogRecord(type = CRM_CUSTOMER_TYPE, subType = CRM_CUSTOMER_RECEIVE_SUB_TYPE, bizNo = "{{#customer.id}}",

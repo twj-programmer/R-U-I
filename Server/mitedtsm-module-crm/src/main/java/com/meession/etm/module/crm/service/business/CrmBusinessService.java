@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.service.business;
 
 import com.meession.etm.framework.common.pojo.PageResult;
@@ -66,7 +67,7 @@ public interface CrmBusinessService {
      *
      * @param reqVO 更新请求
      */
-    void updateBusinessStatus(CrmBusinessUpdateStatusReqVO reqVO);
+    void updateBusinessStatus(@Valid CrmBusinessUpdateStatusReqVO reqVO);
 
     /**
      * 删除商机
@@ -164,6 +165,8 @@ public interface CrmBusinessService {
      */
     Long getBusinessCountByCustomerId(Long customerId);
 
+    Long getActiveBusinessCountByCustomerId(Long customerId);
+
     /**
      * 获得使用指定商机状态组的商机数量
      *
@@ -183,7 +186,7 @@ public interface CrmBusinessService {
         if (endStatus != null) {
             return CrmBusinessEndStatusEnum.fromStatus(endStatus).getName();
         }
-        return status.getName();
+        return status != null ? status.getName() : "历史阶段未知";
     }
 
     /**

@@ -1,6 +1,6 @@
-<!-- 客户转化率分�?-->
+<!-- 客户转化率分析 -->
 <template>
-  <!-- Echarts�?-->
+  <!-- Echarts 图 -->
   <el-card shadow="never">
     <el-skeleton :loading="loading" animated>
       <Echart :height="500" :options="echartsOption" />
@@ -9,6 +9,19 @@
 
   <!-- 统计列表 -->
   <el-card shadow="never" class="mt-16px">
+    <template #header>
+      <div class="flex justify-end">
+        <el-button
+          v-hasPermi="['crm:statistics-customer:export']"
+          type="success"
+          plain
+          :loading="exportLoading"
+          @click="handleExport"
+        >
+          <Icon icon="ep:download" class="mr-5px" /> {{ t('common.export') }}
+        </el-button>
+      </div>
+    </template>
     <el-table v-loading="loading" :data="list" :table-layout="'auto'">
       <el-table-column :label="t('customer.index')" align="center" type="index" width="80" fixed="left" />
       <el-table-column
@@ -66,27 +79,30 @@
 <script setup lang="ts">
 import {
   StatisticsCustomerApi,
+  CrmStatisticsCustomerContractSummaryRespVO,
   CrmStatisticsCustomerSummaryByDateRespVO
 } from '@/api/crm/statistics/customer'
 import { EChartsOption } from 'echarts'
-import { dateFormatter } from '@/utils/formatTime'
+import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { erpPriceTableColumnFormatter } from '@/utils'
 import { DICT_TYPE } from '@/utils/dict'
+import download from '@/utils/download'
 
 defineOptions({ name: 'CustomerConversionStat' })
 
-const { t } = useI18n('crm.statistics') // 国际�?
+const { t } = useI18n('crm.statistics') // 国际化
 
 const props = defineProps<{ queryParams: any }>() // 搜索参数
 
-const loading = ref(false) // 加载�?
-const list = ref<CrmStatisticsCustomerSummaryByDateRespVO[]>([]) // 列表的数�?
+const loading = ref(false) // 加载中
+const exportLoading = ref(false)
+const list = ref<CrmStatisticsCustomerContractSummaryRespVO[]>([]) // 列表的数据
 
 /** 柱状图配置：纵向 */
 const echartsOption = reactive<EChartsOption>({
   grid: {
     left: 20,
-    right: 40, // �?X 轴右侧显示完�?
+    right: 40, // 让 X 轴右侧显示完整
     bottom: 20,
     containLabel: true
   },
@@ -104,9 +120,9 @@ const echartsOption = reactive<EChartsOption>({
         xAxisIndex: false // 数据区域缩放：Y 轴不缩放
       },
       brush: {
-        type: ['lineX', 'clear'] // 区域缩放按钮、还原按�?
+        type: ['lineX', 'clear'] // 区域缩放按钮、还原按钮
       },
-      saveAsImage: { show: true, name: t('customer.conversion') } // 保存为图�?
+      saveAsImage: { show: true, name: t('customer.conversion') } // 保存为图片
     }
   },
   tooltip: {
@@ -126,7 +142,7 @@ const echartsOption = reactive<EChartsOption>({
   }
 }) as EChartsOption
 
-/** 获取数据并填充图�?*/
+/** 获取数据并填充图表 */
 const fetchAndFill = async () => {
   // 1. 加载统计数据
   const customerCount = await StatisticsCustomerApi.getCustomerSummaryByDate(props.queryParams)
@@ -163,9 +179,23 @@ const loadData = async () => {
   }
 }
 
+/** 导出客户转化明细 */
+const handleExport = async () => {
+  try {
+    await useMessage().exportConfirm()
+    exportLoading.value = true
+    const data = await StatisticsCustomerApi.exportContractSummary(props.queryParams)
+    const timestamp = formatDate(new Date(), 'YYYYMMDDHHmmss')
+    download.excel(data, `客户转化明细_${timestamp}.xlsx`)
+  } catch {
+  } finally {
+    exportLoading.value = false
+  }
+}
+
 defineExpose({ loadData })
 
-/** 初始�?*/
+/** 初始化 */
 onMounted(() => {
   loadData()
 })

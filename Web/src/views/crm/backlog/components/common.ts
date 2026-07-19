@@ -24,9 +24,11 @@ export const CONTACT_STATUS = [
 
 /** 审批状态 */
 export const AUDIT_STATUS = [
+  { label: t('backlog.auditDraft'), value: 0 },
   { label: t('backlog.auditPending'), value: 10 },
   { label: t('backlog.auditPassed'), value: 20 },
-  { label: t('backlog.auditRejected'), value: 30 }
+  { label: t('backlog.auditRejected'), value: 30 },
+  { label: t('backlog.auditCanceled'), value: 40 }
 ]
 
 /** 回款提醒类型 */

@@ -1,3 +1,4 @@
+// 23计科4班 黄金戈
 package com.meession.etm.module.crm.enums;
 
 import com.meession.etm.framework.common.exception.ErrorCode;
@@ -26,6 +27,7 @@ public interface ErrorCodeConstants {
     ErrorCode BUSINESS_DELETE_FAIL_CONTRACT_EXISTS = new ErrorCode(1_020_002_001, "商机已关联合同，不能删除");
     ErrorCode BUSINESS_UPDATE_STATUS_FAIL_END_STATUS = new ErrorCode(1_020_002_002, "更新商机状态失败，原因：已经是结束状态");
     ErrorCode BUSINESS_UPDATE_STATUS_FAIL_STATUS_EQUALS = new ErrorCode(1_020_002_003, "更新商机状态失败，原因：已经是该状态");
+    ErrorCode BUSINESS_UPDATE_VERSION_CONFLICT = new ErrorCode(1_020_002_004, "商机数据已被他人更新，请刷新后重试");
 
     // ========== 联系人管理 1-020-003-000 ==========
     ErrorCode CONTACT_NOT_EXISTS = new ErrorCode(1_020_003_000, "联系人不存在");
@@ -65,6 +67,10 @@ public interface ErrorCodeConstants {
     ErrorCode CUSTOMER_CREATE_NAME_NOT_NULL = new ErrorCode(1_020_006_013, "客户名称不能为空！");
     ErrorCode CUSTOMER_NAME_EXISTS = new ErrorCode(1_020_006_014, "已存在名为【{}】的客户！");
     ErrorCode CUSTOMER_UPDATE_DEAL_STATUS_FAIL = new ErrorCode(1_020_006_015, "更新客户的成交状态失败，原因：已经是该状态，无需更新");
+    ErrorCode CUSTOMER_RECEIVE_EXCEED_DAILY_LIMIT = new ErrorCode(1_020_006_016, "领取客户失败，原因：超出每日领取上限");
+    ErrorCode CUSTOMER_RECEIVE_COOLDOWN = new ErrorCode(1_020_006_017, "领取客户失败，原因：该客户在冷却期内");
+    ErrorCode CUSTOMER_PUT_POOL_FAIL_ACTIVE_BUSINESS = new ErrorCode(1_020_006_018, "客户放入公海失败，原因：存在进行中的商机");
+    ErrorCode CUSTOMER_RECEIVE_CONCURRENT_CONFLICT = new ErrorCode(1_020_006_019, "领取客户失败，原因：已被他人领取");
 
     // ========== 权限管理 1_020_007_000 ==========
     ErrorCode CRM_PERMISSION_NOT_EXISTS = new ErrorCode(1_020_007_000, "数据权限不存在");

@@ -151,6 +151,7 @@
       <el-table-column fixed="right" :label="t('common.action')" min-width="150">
         <template #default="scope">
           <el-button
+            v-if="scope.row.processInstanceId"
             link
             v-hasPermi="['crm:contract:update']"
             type="primary"
@@ -179,6 +180,7 @@ import { AUDIT_STATUS } from './common'
 import { erpPriceInputFormatter, erpPriceTableColumnFormatter } from '@/utils'
 
 const { t } = useI18n('crm') // 国际化
+const message = useMessage() // 消息弹窗
 const loading = ref(true) // 列表的加载中
 const total = ref(0) // 列表的总页数
 const list = ref([]) // 列表的数据
@@ -209,6 +211,10 @@ const handleQuery = () => {
 
 /** 查看审批 */
 const handleProcessDetail = (row: ContractApi.ContractVO) => {
+  if (!row.processInstanceId) {
+    message.warning(t('crm.contract.noProcessInstanceId'))
+    return
+  }
   push({ name: 'BpmProcessInstanceDetail', query: { id: row.processInstanceId } })
 }
 
